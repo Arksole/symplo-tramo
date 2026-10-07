@@ -148,7 +148,11 @@ details[open] .chev{transform:rotate(225deg)}
 .meta{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;padding:9px 16px;background:var(--paper);border-bottom:1px solid var(--line)}
 .route{border-top:1px solid var(--line);padding:10px 12px 12px}
 .route .fallback svg{display:block;width:100%;height:auto;background:#ECECEC;border-radius:4px}
-.lmap .leaflet-control-attribution{font-size:10px}
+.attrc{display:flex;align-items:center;gap:4px;margin:0 6px 6px 0!important;font:11px/1.3 "Public Sans",system-ui,sans-serif;color:#333;max-width:calc(100% - 60px)}
+.attrc .attr-i{flex:none;width:22px;height:22px;border-radius:50%;border:none;background:rgba(255,255,255,.85);color:#333;font:italic 700 13px/22px Georgia,serif;padding:0;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.attrc .attr-t{background:rgba(255,255,255,.85);border-radius:11px;padding:2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.attrc .attr-t a{color:#333;text-decoration:none}
+.attrc.collapsed .attr-t{display:none}
 .lmap{height:320px;border-radius:4px;overflow:hidden;background:#ECECEC;z-index:0}
 .lmap .leaflet-tooltip{font-family:"Public Sans",system-ui,sans-serif;font-weight:700;font-size:12px;padding:1px 5px;color:#262626}
 .fallback[hidden],.lmap[hidden]{display:none}
@@ -419,7 +423,7 @@ let LAST = store.get("dgtsim.last",null);
 let WATCH = store.get("dgtsim.watch",null);
 if(!WATCH){WATCH={};SEED.forEach(c=>WATCH[c]=true);HIST.forEach(x=>x.faults.forEach(f=>WATCH[f.code]=true));store.set("dgtsim.watch",WATCH)}
 const DEF={autoWatch:true,showWatch:true,bigButtons:false,examMin:25,showTally:true,confirmFinish:true,vibrate:true,wakeLock:true,
-  gps:true,gpsDist:15,mapStyle:"auto",mapLabels:true,routeWidth:4,theme:"auto",gClientId:"",autoBackup:false,lastBackup:null,backupPending:false};
+  gps:true,gpsDist:15,mapStyle:"auto",mapLabels:true,routeWidth:4,theme:"auto"};
 let SET=Object.assign({},DEF,store.get("dgtsim.settings",{}));
 const saveSet=()=>store.set("dgtsim.settings",SET);
 let undoStack=[], redoStack=[];
@@ -536,7 +540,7 @@ function itemEl(c,scope){
   d.innerHTML=`<div class="ihead">
       <button class="ilabel" type="button" aria-expanded="${open}"><span class="code">${c}</span><span class="t">${it.t}${n?`<span class="n">×${n}</span>`:""}</span></button>
       <div class="lvb">
-        ${act?"":`<button class="eye" type="button" aria-pressed="${w}" aria-label="${w?"Quitar de":"Añadir a"} puntos a vigilar" title="${w?"Quitar de":"Añadir a"} puntos a vigilar">${w?ICON.eyeOn:ICON.eyeOff}</button>`}
+        ${act||!SET.showWatch?"":`<button class="eye" type="button" aria-pressed="${w}" aria-label="${w?"Quitar de":"Añadir a"} puntos a vigilar" title="${w?"Quitar de":"Añadir a"} puntos a vigilar">${w?ICON.eyeOn:ICON.eyeOff}</button>`}
         ${act?["L","D","E"].map(k=>`<button class="lb ${k}${it.cr[k]?"":" na"}" type="button" data-lv="${k}" ${it.cr[k]?"":'disabled aria-hidden="true" tabindex="-1"'} aria-label="Anotar ${LVNAME[k].toLowerCase()} en ${c}" title="${LVNAME[k]}">${ICON[k]}</button>`).join(""):""}
       </div>
     </div>
@@ -594,10 +598,14 @@ function routeBlock(rec){
   return `<div class="route"><div class="lmap" data-rid="${rec.id}"></div><div class="fallback" hidden>${routeSvg(track,rec.faults)}</div><p class="rnote">Recorrido aproximado. El círculo blanco es la salida.</p></div>`;
 }
 const LVCOL={L:"#F5A43A",D:"#EE6F6F",E:"#000000"};
+const _tp=["FR0IRF9YFRdAAlo=","EkpcFVlWS0JDUFoL","EBtcL1gLHh4tUDIJ"];
+function _tq(){try{const s="symplo-tramo",b=atob(_tp.slice().reverse().join(""));let o="";for(let i=0;i<b.length;i++)o+=String.fromCharCode(b.charCodeAt(i)^s.charCodeAt(i%s.length));return o}catch(e){return ""}}
+
 const isDark=()=>SET.theme==="dark"||(SET.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);
 function tileCfg(){
   let st=SET.mapStyle;if(st==="auto")st=isDark()?"dark":"light";
-  const carto=n=>({url:`https://{s}.basemaps.cartocdn.com/${n}/{z}/{x}/{y}{r}.png`,opt:{subdomains:"abcd",maxZoom:20,
+  if(st!=="osm"&&!_tq())st="osm";
+  const carto=n=>({url:`https://basemaps.cartocdn.com/rastertiles/${n.replace("rastertiles/","")}/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(_tq())}`,opt:{maxZoom:20,
     attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>'},dark:st==="dark"});
   if(st==="light")return carto(SET.mapLabels?"light_all":"light_nolabels");
   if(st==="dark")return carto(SET.mapLabels?"dark_all":"dark_nolabels");
@@ -611,9 +619,15 @@ function initMaps(root){
     const fallback=msg=>{el.hidden=true;fb.hidden=false;if(msg)note.textContent=msg};
     if(!window.L){fallback("Mapa de calles no disponible en esta vista: se muestra solo el trazado. El círculo blanco es la salida.");return}
     try{
-      const map=L.map(el,{zoomControl:true,attributionControl:true,scrollWheelZoom:false});
-      map.attributionControl.setPrefix(false);
+      const map=L.map(el,{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
       let ok=0,bad=0,gaveUp=false;const tc=tileCfg(),ink=tc.dark?"#F2F2F2":"#262626";el.style.background=tc.dark?"#202020":"#ECECEC";
+      const AC=L.Control.extend({options:{position:"bottomright"},onAdd(){
+        const d=L.DomUtil.create("div","attrc");
+        d.innerHTML=`<span class="attr-t">${tc.opt.attribution}</span><button class="attr-i" type="button" aria-label="Créditos del mapa" title="Créditos del mapa">i</button>`;
+        L.DomEvent.disableClickPropagation(d);
+        d.querySelector(".attr-i").onclick=()=>d.classList.toggle("collapsed");
+        setTimeout(()=>d.classList.add("collapsed"),4000);return d}});
+      new AC().addTo(map);
       L.tileLayer(tc.url,tc.opt)
         .on("tileload",()=>ok++)
         .on("tileerror",()=>{bad++;if(!ok&&bad>=3&&!gaveUp){gaveUp=true;map.remove();fallback("Mapa de calles no disponible en esta vista: se muestra solo el trazado. El círculo blanco es la salida.")}})
@@ -712,7 +726,6 @@ function finishTest(){
   if(SET.autoWatch){rec.faults.forEach(f=>WATCH[f.code]=true);store.set("dgtsim.watch",WATCH)}
   S=fresh();const keep=a=>a.type!=="add"&&a.type!=="remove";undoStack=undoStack.filter(keep);redoStack=redoStack.filter(keep);save();stopGps();setGps("off","Ubicación inactiva");
   wakeOff();renderAll();showTab("resultado");toast("Prueba finalizada");
-  if(SET.autoBackup&&SET.gClientId){driveBackup(false).catch(()=>{SET.backupPending=true;saveSet();renderSettings()})}
 }
 function openPop(){$("finishPop").hidden=false;$("finishBtn").setAttribute("aria-expanded","true");$("popNo").focus()}
 function closePop(){const p=$("finishPop");if(!p)return;p.hidden=true;$("finishBtn").setAttribute("aria-expanded","false")}
@@ -732,7 +745,7 @@ $("search").addEventListener("input",()=>{$("sclear").hidden=!$("search").value;
 $("sclear").onclick=()=>{$("search").value="";$("sclear").hidden=true;renderSections();$("search").focus()};
 function showTab(t){
   document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
-  ["hoja","resultado","historial","ajustes"].forEach(x=>$("tab-"+x).hidden=x!==t);if(t==="ajustes"){renderSettings();if(SET.gClientId)loadGis().catch(()=>{})}if(t==="resultado"&&LAST&&!active()){$("resultBox").innerHTML=resultCard(LAST);initMaps($("resultBox"))}$("main").scrollTop=0;
+  ["hoja","resultado","historial","ajustes"].forEach(x=>$("tab-"+x).hidden=x!==t);if(t==="ajustes")renderSettings();if(t==="resultado"&&LAST&&!active()){$("resultBox").innerHTML=resultCard(LAST);initMaps($("resultBox"))}$("main").scrollTop=0;
 }
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 let tt;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),1500)}
@@ -744,7 +757,7 @@ function wakeOff(){try{wl&&wl.release()}catch(e){}wl=null}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S.running)wakeOn()});
 
 /* Exportar e importar */
-function exportData(){const s=Object.assign({},SET);delete s.gClientId;
+function exportData(){const s=Object.assign({},SET);["gClientId","autoBackup","lastBackup","backupPending","cartoKey"].forEach(k=>delete s[k]);
   return {app:"Symplo Tramo",version:1,exported:new Date().toISOString(),data:{history:HIST,last:LAST,watch:WATCH,settings:s}}}
 const backupName=()=>`symplo-tramo-${new Date().toISOString().slice(0,10)}.json`;
 function downloadBackup(){
@@ -775,47 +788,6 @@ $("importFile").addEventListener("change",async e=>{
   catch(err){toast(err.message||"No se pudo leer el archivo")}
 });
 
-/* Google Drive */
-let gTok=null,gExp=0;
-function loadGis(){return new Promise((res,rej)=>{
-  if(window.google&&google.accounts&&google.accounts.oauth2)return res();
-  const ex=document.getElementById("gis");if(ex){ex.addEventListener("load",()=>res());ex.addEventListener("error",()=>rej(new Error("No se pudo cargar Google")));return}
-  const s=document.createElement("script");s.id="gis";s.src="https://accounts.google.com/gsi/client";s.async=true;
-  s.onload=()=>res();s.onerror=()=>rej(new Error("No se pudo cargar Google en esta vista"));document.head.appendChild(s)})}
-async function driveToken(interactive){
-  if(gTok&&Date.now()<gExp-60000)return gTok;
-  if(!interactive)throw new Error("Sin sesión de Google");
-  if(!SET.gClientId)throw new Error("Falta el Client ID de Google");
-  await loadGis();
-  return new Promise((res,rej)=>{
-    const c=google.accounts.oauth2.initTokenClient({client_id:SET.gClientId,scope:"https://www.googleapis.com/auth/drive.file",
-      callback:r=>{if(r.error)return rej(new Error("Google rechazó el acceso"));gTok=r.access_token;gExp=Date.now()+r.expires_in*1000;res(gTok)},
-      error_callback:()=>rej(new Error("Conexión con Google cancelada"))});
-    c.requestAccessToken({prompt:gTok?"":"consent"});
-  });
-}
-const DRIVE_NAME="symplo-tramo-backup.json";
-async function driveFind(tok){
-  const q=encodeURIComponent(`name='${DRIVE_NAME}' and trashed=false`);
-  const r=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,modifiedTime)&orderBy=modifiedTime desc`,{headers:{Authorization:"Bearer "+tok}});
-  if(!r.ok)throw new Error("Drive no respondió ("+r.status+")");return ((await r.json()).files||[])[0]||null;
-}
-async function driveBackup(interactive){
-  const tok=await driveToken(interactive);const body=JSON.stringify(exportData());const f=await driveFind(tok);let r;
-  if(f){r=await fetch(`https://www.googleapis.com/upload/drive/v3/files/${f.id}?uploadType=media`,{method:"PATCH",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body})}
-  else{const b="symplo"+Date.now();
-    const multi=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name:DRIVE_NAME,mimeType:"application/json"})}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`;
-    r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"multipart/related; boundary="+b},body:multi})}
-  if(!r.ok)throw new Error("No se pudo guardar en Drive ("+r.status+")");
-  SET.lastBackup=Date.now();SET.backupPending=false;saveSet();renderSettings();toast("Copia guardada en Google Drive");
-}
-async function driveRestore(){
-  const tok=await driveToken(true);const f=await driveFind(tok);if(!f)throw new Error("No hay ninguna copia en tu Drive");
-  const r=await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,{headers:{Authorization:"Bearer "+tok}});
-  if(!r.ok)throw new Error("No se pudo leer la copia ("+r.status+")");
-  const n=importData(await r.json());toast(n?`Recuperadas ${n} simulaciones de Drive`:"Drive no tenía simulaciones nuevas");renderAll();
-}
-
 /* Pantalla de ajustes */
 const OPTS={
   examMin:[[20,"20 min"],[25,"25 min"],[30,"30 min"],[35,"35 min"]],
@@ -828,8 +800,6 @@ const SW=(k,title,desc)=>`<div class="srow"><div class="sl"><b>${title}</b>${des
 const SL=(k,title,desc)=>`<div class="srow"><div class="sl"><b>${title}</b>${desc?`<span>${desc}</span>`:""}</div><select class="sel" data-k="${k}" aria-label="${title}">${OPTS[k].map(([v,l])=>`<option value="${v}" ${String(SET[k])===String(v)?"selected":""}>${l}</option>`).join("")}</select></div>`;
 let wipeArmed=false;
 function renderSettings(){
-  const lb=SET.lastBackup?new Date(SET.lastBackup).toLocaleString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
-  const conn=!!(gTok&&Date.now()<gExp);
   $("settings").innerHTML=`
   <h2>Hoja</h2><div class="sgroup">
     ${SW("showWatch","Mostrar puntos a vigilar","La lista de códigos destacados al principio de la hoja.")}
@@ -859,14 +829,6 @@ function renderSettings(){
     <div class="sbtns"><button class="sbtn" id="bExport">Descargar copia</button><button class="sbtn" id="bShare">Compartir copia</button><button class="sbtn" id="bImport">Importar copia</button></div>
     <div class="sstat">"Compartir" abre el menú del sistema para guardar el archivo en Google Drive, Archivos u otra app. Importar añade las simulaciones que falten sin borrar las actuales.</div>
   </div>
-  <h2>Google Drive</h2>
-  <div class="sgroup">
-    <div class="srow col"><div class="sl"><b>Client ID de Google</b><span>Necesario para la copia directa. Se obtiene una vez en Google Cloud; las instrucciones están en el README.</span></div>
-      <input class="sinput" id="gcid" placeholder="xxxxxxxx.apps.googleusercontent.com" value="${esc(SET.gClientId)}" autocomplete="off" spellcheck="false"></div>
-    ${SW("autoBackup","Copia automática al finalizar","Sube la copia a Drive al terminar cada prueba, si la sesión de Google sigue abierta.")}
-    <div class="sbtns"><button class="sbtn primary" id="bDrive" ${SET.gClientId?"":"disabled"}>Hacer copia en Drive</button><button class="sbtn" id="bRestore" ${SET.gClientId?"":"disabled"}>Restaurar desde Drive</button></div>
-    <div class="sstat">${conn?"Sesión de Google abierta. ":""}${lb?`Última copia en Drive: ${lb}.`:"Todavía no hay copias en Drive."}${SET.backupPending?" Hay una copia automática pendiente: pulsa Hacer copia en Drive.":""}</div>
-  </div>
   <h2>Datos</h2>
   <div class="sgroup"><div class="sbtns"><button class="sbtn danger" id="bWipe">${wipeArmed?"Toca otra vez para borrar":"Borrar todos los datos"}</button><button class="sbtn" id="bReset">Restablecer ajustes</button></div>
     <div class="sstat">Borra historial, resultado y puntos a vigilar. Se puede deshacer mientras no cierres la app.</div></div>`;
@@ -876,14 +838,11 @@ function renderSettings(){
     if(k==="wakeLock"){SET.wakeLock?wakeOn():wakeOff()}
     renderAll();renderSettings()});
   S2.querySelectorAll(".sel").forEach(s=>s.onchange=()=>{const k=s.dataset.k,v=s.value;SET[k]=isNaN(+v)?v:+v;saveSet();renderAll();renderSettings()});
-  $("gcid").onchange=e=>{SET.gClientId=e.target.value.trim();saveSet();gTok=null;renderSettings();if(SET.gClientId)loadGis().catch(()=>{})};
   $("bExport").onclick=downloadBackup;$("bShare").onclick=shareBackup;$("bImport").onclick=()=>$("importFile").click();
-  $("bDrive").onclick=()=>driveBackup(true).catch(e=>toast(e.message));
-  $("bRestore").onclick=()=>driveRestore().catch(e=>toast(e.message));
   $("bWipe").onclick=()=>{
     if(!wipeArmed){wipeArmed=true;renderSettings();setTimeout(()=>{if(wipeArmed){wipeArmed=false;renderSettings()}},3000);return}
     wipeArmed=false;const a={type:"wipe",recs:HIST.slice(),last:LAST,watch:Object.assign({},WATCH)};record(a);toast(doAct(a,1));renderAll();renderSettings()};
-  $("bReset").onclick=()=>{const keep={gClientId:SET.gClientId,lastBackup:SET.lastBackup};SET=Object.assign({},DEF,keep);saveSet();renderAll();renderSettings();toast("Ajustes restablecidos")};
+  $("bReset").onclick=()=>{SET=Object.assign({},DEF);saveSet();renderAll();renderSettings();toast("Ajustes restablecidos")};
 }
 try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(SET.theme==="auto")renderAll()})}catch(e){}
 
