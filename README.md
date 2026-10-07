@@ -15,12 +15,14 @@ Symplo Tramo permite a un acompañante (profesor, familiar o amigo) puntuar una 
 3. [Baremo de calificación](#baremo-de-calificación)
 4. [Apartados y códigos](#apartados-y-códigos)
 5. [Geolocalización y mapa](#geolocalización-y-mapa)
-6. [Privacidad y datos](#privacidad-y-datos)
-7. [Instalación en GitHub Pages](#instalación-en-github-pages)
-8. [Actualizar la aplicación](#actualizar-la-aplicación)
-9. [Detalles técnicos](#detalles-técnicos)
-10. [Limitaciones conocidas](#limitaciones-conocidas)
-11. [Créditos](#créditos)
+6. [Ajustes](#ajustes)
+7. [Copias de seguridad y Google Drive](#copias-de-seguridad-y-google-drive)
+8. [Privacidad y datos](#privacidad-y-datos)
+9. [Instalación en GitHub Pages](#instalación-en-github-pages)
+10. [Actualizar la aplicación](#actualizar-la-aplicación)
+11. [Detalles técnicos](#detalles-técnicos)
+12. [Limitaciones conocidas](#limitaciones-conocidas)
+13. [Créditos](#créditos)
 
 ---
 
@@ -36,7 +38,9 @@ Symplo Tramo permite a un acompañante (profesor, familiar o amigo) puntuar una 
 - **Resultado** con el mismo formato que la consulta de notas de la DGT: apto o no apto, códigos por nivel y motivo.
 - **Geolocalización**: cada falta queda asociada a su posición y el recorrido se dibuja sobre un mapa de calles.
 - **Historial** de simulaciones con su hoja de resultado, un resumen de los códigos que más se repiten y borrado individual con confirmación.
-- **Modo claro y oscuro** según la configuración del dispositivo.
+- **Ajustes** para personalizar la hoja, la prueba, el mapa y el tema.
+- **Copias de seguridad** en archivo, por el menú de compartir del sistema o directamente en Google Drive.
+- **Modo claro y oscuro**, automático o fijo.
 
 ## Cómo se usa
 
@@ -99,7 +103,8 @@ Al pulsar **Iniciar**, la aplicación pide permiso para usar la ubicación del d
 
 - Se registra el recorrido aproximadamente cada 15 metros o cada 20 segundos.
 - Cada falta queda guardada con su posición, con un enlace *Ver ubicación* en la lista de faltas.
-- En la hoja de resultado aparece un mapa de OpenStreetMap con el trazado, la salida (círculo blanco) y cada falta marcada con su color y su código.
+- En la hoja de resultado aparece un mapa con el trazado, la salida (círculo blanco) y cada falta marcada con su color y su código.
+- Por defecto el mapa usa un estilo de conducción (CARTO Positron o Dark Matter según el tema), que muestra calles y carreteras sin comercios, cafeterías ni otros puntos de interés. El estilo se cambia en *Ajustes*.
 
 El indicador de la cabecera muestra el estado: *Ubicación activa* con la precisión en metros, *Buscando ubicación*, *Ubicación bloqueada* o *Ubicación no disponible*.
 
@@ -109,11 +114,61 @@ El indicador de la cabecera muestra el estado: *Ubicación activa* con la precis
 - El navegador debe tener permiso de ubicación. En iPhone: *Ajustes → Privacidad y seguridad → Localización → Safari*, en "Mientras se usa" y con "Ubicación exacta" activada. En Android: *Ajustes → Aplicaciones → Chrome → Permisos → Ubicación*.
 - La versión publicada dentro del visor de claude.ai no tiene acceso a la ubicación ni a las teselas del mapa. En ese caso la aplicación funciona igual, pero sin posiciones, y el recorrido se muestra como un trazado simple sin calles.
 
+## Ajustes
+
+| Grupo | Opción | Qué hace |
+|---|---|---|
+| Hoja | Mostrar puntos a vigilar | Muestra u oculta la lista de códigos destacados |
+| Hoja | Añadir faltas a puntos a vigilar | Al finalizar, los códigos cometidos se añaden solos a la lista |
+| Hoja | Botones de puntuación grandes | Aumenta el tamaño de los botones leve, grave y eliminatoria |
+| Prueba | Duración objetivo | 20, 25, 30 o 35 minutos; el cronómetro se subraya al superarla |
+| Prueba | Recuento visible durante la prueba | Oculta el recuento para que el conductor no sepa cuántas faltas lleva |
+| Prueba | Confirmar antes de finalizar | Muestra o no el aviso de confirmación |
+| Prueba | Vibrar al anotar una falta | Solo en móviles compatibles (no en iPhone) |
+| Prueba | Mantener la pantalla encendida | Evita que el móvil se bloquee durante la prueba |
+| Ubicación y mapa | Registrar ubicación y recorrido | Activa o desactiva la geolocalización |
+| Ubicación y mapa | Precisión del recorrido | Distancia mínima entre puntos: 5, 10, 15 o 30 m |
+| Ubicación y mapa | Estilo del mapa | Conducción según el tema, conducción claro u oscuro, carreteras en color o detallado (OpenStreetMap) |
+| Ubicación y mapa | Nombres de calles | Muestra u oculta las etiquetas en los estilos de conducción |
+| Ubicación y mapa | Grosor del recorrido | Fino, medio o grueso |
+| Apariencia | Tema | Según el dispositivo, claro u oscuro |
+
+*Restablecer ajustes* vuelve a los valores por defecto sin tocar los datos.
+
+## Copias de seguridad y Google Drive
+
+En *Ajustes → Copias de seguridad*:
+
+- **Descargar copia:** guarda un archivo `symplo-tramo-AAAA-MM-DD.json` con el historial, la última prueba, los puntos a vigilar y los ajustes.
+- **Compartir copia:** abre el menú de compartir del sistema para enviar el archivo a Google Drive, Archivos, correo u otra app. No necesita configuración.
+- **Importar copia:** añade las simulaciones del archivo que no estén ya en la app, sin borrar las actuales. La importación se puede deshacer.
+
+### Copia directa en Google Drive
+
+Para que la app guarde y recupere la copia en Drive sin pasar por el menú de compartir, hace falta un *Client ID* de Google. Se configura una sola vez:
+
+1. Entra en [console.cloud.google.com](https://console.cloud.google.com) con tu cuenta de Google y crea un proyecto nuevo (por ejemplo, *Symplo Tramo*).
+2. En **APIs y servicios → Biblioteca**, busca **Google Drive API** y pulsa **Habilitar**.
+3. En **APIs y servicios → Pantalla de consentimiento de OAuth**, elige **Externo**, rellena el nombre de la app y tu correo, y en **Usuarios de prueba** añade tu propia cuenta de Gmail.
+4. En **APIs y servicios → Credenciales**, pulsa **Crear credenciales → ID de cliente de OAuth**, tipo **Aplicación web**.
+5. En **Orígenes de JavaScript autorizados** añade la dirección de tu GitHub Pages, sin ruta ni barra final: `https://tu-usuario.github.io`.
+6. Pulsa **Crear** y copia el **ID de cliente** (termina en `.apps.googleusercontent.com`).
+7. En Symplo Tramo, pégalo en *Ajustes → Google Drive → Client ID de Google*.
+
+A partir de ahí:
+
+- **Hacer copia en Drive** pide permiso la primera vez y crea o actualiza el archivo `symplo-tramo-backup.json` en tu Drive.
+- **Restaurar desde Drive** recupera las simulaciones de esa copia que no estén en el móvil.
+- **Copia automática al finalizar** sube la copia al terminar cada prueba si la sesión de Google sigue abierta (dura una hora). Si no lo está, la app avisa de que hay una copia pendiente.
+
+La app solo pide el permiso `drive.file`, que le da acceso únicamente a los archivos que ella misma crea, no al resto de tu Drive. Mientras el proyecto de Google esté en modo de prueba, Google mostrará un aviso de app no verificada al conectar; es normal en proyectos personales.
+
 ## Privacidad y datos
 
 - **Todos los datos se guardan solo en el navegador del dispositivo** mediante `localStorage`. No se envían faltas, historial ni ubicaciones a ningún servidor.
 - El repositorio público solo contiene el código de la aplicación, nunca los datos de quien la usa.
-- Para mostrar el mapa, el navegador descarga las imágenes de las calles de los servidores de OpenStreetMap. Esas peticiones revelan la zona aproximada que se está viendo, como cualquier web con mapas.
+- Las copias en Google Drive solo se suben cuando las pides o activas la copia automática, y van a tu propia cuenta.
+- Para mostrar el mapa, el navegador descarga las imágenes de las calles de los servidores de CARTO u OpenStreetMap, según el estilo elegido. Esas peticiones revelan la zona aproximada que se está viendo, como cualquier web con mapas.
 - Cada navegador guarda sus datos por separado. El historial de Safari no aparece en Chrome, y en iPhone tampoco se comparte entre Safari y el icono añadido a la pantalla de inicio. Conviene usar siempre la misma vía.
 - Borrar los datos de navegación del sitio elimina también el historial de Symplo Tramo.
 
@@ -125,18 +180,7 @@ Claves usadas en `localStorage`:
 | `dgtsim.history` | Pruebas finalizadas |
 | `dgtsim.last` | Última prueba finalizada, mostrada en *Resultado* |
 | `dgtsim.watch` | Códigos marcados como puntos a vigilar |
-
-## Instalación en GitHub Pages
-
-1. Crea una cuenta en [github.com](https://github.com) si no la tienes.
-2. Pulsa **+ → New repository**, ponle un nombre (por ejemplo `symplo-tramo`), márcalo como **Public** y pulsa **Create repository**.
-3. Pulsa **Add file → Upload files**, arrastra `index.html` (y este `README.md` si quieres) y pulsa **Commit changes**. El archivo principal tiene que llamarse exactamente `index.html`.
-4. Ve a **Settings → Pages**. En *Source* elige **Deploy from a branch**, en *Branch* elige **main** y la carpeta **/ (root)**, y pulsa **Save**.
-5. En uno o dos minutos aparecerá la dirección de la aplicación, con la forma:
-   `https://tu-usuario.github.io/symplo-tramo/`
-6. Ábrela en el móvil y, para usarla como una app, añádela a la pantalla de inicio:
-   - **iPhone (Safari):** botón Compartir → *Añadir a pantalla de inicio*.
-   - **Android (Chrome):** menú ⋮ → *Añadir a pantalla de inicio*.
+| `dgtsim.settings` | Ajustes de la aplicación |
 
 ## Actualizar la aplicación
 
@@ -149,7 +193,9 @@ GitHub Pages publica el cambio en uno o dos minutos. Si el móvil sigue mostrand
 ## Detalles técnicos
 
 - **Un único archivo** `index.html` con HTML, CSS y JavaScript sin dependencias de compilación.
-- **Mapa:** [Leaflet](https://leafletjs.com) 1.9.4, cargado desde cdnjs, con su hoja de estilos incrustada en el archivo, y teselas de [OpenStreetMap](https://www.openstreetmap.org).
+- **Mapa:** [Leaflet](https://leafletjs.com) 1.9.4, cargado desde cdnjs, con su hoja de estilos incrustada en el archivo, y teselas de [CARTO](https://carto.com/basemaps) y [OpenStreetMap](https://www.openstreetmap.org).
+- **Google Drive:** Google Identity Services para el permiso y la API REST de Drive v3 para subir y descargar la copia.
+- **Pantalla encendida:** Screen Wake Lock API, disponible en iPhone desde iOS 16.4 y en Chrome para Android.
 - **Tipografía:** [Public Sans](https://fonts.google.com/specimen/Public+Sans), servida por Google Fonts, con fuentes del sistema como respaldo.
 - **Ubicación:** API estándar `navigator.geolocation.watchPosition` con alta precisión.
 - **Almacenamiento:** `localStorage`, con todas las lecturas y escrituras protegidas para que la aplicación funcione aunque el navegador lo bloquee.
@@ -161,13 +207,12 @@ GitHub Pages publica el cambio en uno o dos minutos. Si el móvil sigue mostrand
 - Los criterios están resumidos a partir de los Criterios de Calificación de la DGT de septiembre de 2019. Si la DGT publica una revisión, algunos supuestos pueden cambiar.
 - El apartado 10 (inmovilización y abandono del vehículo) está agrupado en un solo código de forma aproximada.
 - La precisión de la ubicación depende del dispositivo y de la cobertura GPS. En calles estrechas o con edificios altos, la posición puede desviarse varios metros.
-- El historial no se sincroniza entre dispositivos. Para pasarlo a otro móvil habría que exportarlo, función que todavía no existe.
+- El historial no se sincroniza solo entre dispositivos. Para pasarlo a otro móvil, exporta una copia en uno e impórtala en el otro, o usa la copia en Google Drive.
+- Las teselas del mapa son imágenes ya dibujadas, así que no se pueden quitar elementos sueltos. Los estilos de conducción ya vienen sin comercios ni puntos de interés.
 
 ## Créditos
 
 - Criterios de calificación: Dirección General de Tráfico.
-- Mapas: © colaboradores de [OpenStreetMap](https://www.openstreetmap.org/copyright), bajo licencia ODbL.
+- Mapas: © colaboradores de [OpenStreetMap](https://www.openstreetmap.org/copyright), bajo licencia ODbL. Estilos de conducción © [CARTO](https://carto.com/attributions).
 - Biblioteca de mapas: [Leaflet](https://leafletjs.com), licencia BSD-2-Clause.
 - Tipografía: Public Sans, licencia SIL Open Font License.
-
-Symplo Tramo es un proyecto de Nil Cañellas.
