@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulador de examen práctico B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F2F2; --card:#FFFFFF; --ink:#262626; --muted:#6B6B6B; --line:#D6D6D6;
+  --L:#F5A43A; --D:#EE6F6F; --E:#1A1A1A; --on-E:#FFFFFF; --E-edge:#1A1A1A; --hi:#EAEAEA;
+  --barH:130px;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#161616; --card:#212121; --ink:#EDEDED; --muted:#9A9A9A; --line:#383838;
+    --L:#F5A43A; --D:#EE6F6F; --E:#000000; --on-E:#FFFFFF; --E-edge:#8A8A8A; --hi:#2C2C2C;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#161616; --card:#212121; --ink:#EDEDED; --muted:#9A9A9A; --line:#383838;
+  --L:#F5A43A; --D:#EE6F6F; --E:#000000; --on-E:#FFFFFF; --E-edge:#8A8A8A; --hi:#2C2C2C;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;height:100%;background:var(--paper);color:var(--ink)}
+body{display:flex;flex-direction:column;overflow:hidden}
+body{font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px}
+.num{font-variant-numeric:tabular-nums}
+svg.ic{width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Cabecera */
+.top{flex:none;z-index:20;background:var(--paper);border-bottom:1px solid var(--line)}
+.row2{display:flex;align-items:center;gap:8px;padding:10px 0 6px}
+.gps{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.gps i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--muted)}
+.gps.on i{background:var(--ink);border-color:var(--ink)}
+.hist-ctl{margin-left:auto;display:flex;gap:6px}
+.ctl{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:0;width:40px;height:38px;display:grid;place-items:center}
+.ctl:disabled{opacity:.35;cursor:not-allowed}
+.tabs{display:flex;gap:4px}
+.tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;padding:8px 4px 9px;font-weight:600;color:var(--muted)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+
+main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+main>.wrap{padding-bottom:28px}
+section[hidden]{display:none}
+h2{font-weight:700;font-size:19px;margin:22px 0 6px}
+.hint{color:var(--muted);font-size:14px;margin:0 0 10px}
+.sbox{position:relative;margin:16px 0 4px}
+.sbox .search{margin:0;padding-right:46px}
+.search::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.sclear{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:none;background:none;display:grid;place-items:center;color:var(--muted);padding:0}
+.sclear[hidden]{display:none}
+.search{width:100%;margin:16px 0 4px;padding:11px 13px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+
+.dot{width:11px;height:11px;border-radius:50%;flex:none}
+.dot.L{background:var(--L)} .dot.D{background:var(--D)} .dot.E{background:var(--E);box-shadow:0 0 0 1px var(--E-edge)}
+
+/* Apartados */
+details.sec{background:var(--card);border:1px solid var(--line);border-radius:8px;margin:8px 0;overflow:hidden}
+details.sec>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer;font-weight:600}
+details.sec>summary::-webkit-details-marker{display:none}
+.sn{font-weight:700;min-width:24px;font-variant-numeric:tabular-nums}
+.count{margin-left:auto;font-size:13px;color:var(--muted);font-weight:500}
+.chev{width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin-left:6px}
+details[open] .chev{transform:rotate(225deg)}
+.box{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+
+.item{border-top:1px solid var(--line)}
+.box .item:first-child{border-top:none}
+.ihead{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px}
+.ilabel{flex:1;display:flex;gap:10px;align-items:baseline;text-align:left;background:none;border:none;padding:6px 0;min-height:40px;min-width:0}
+.ilabel .code{font-weight:700;min-width:50px;font-variant-numeric:tabular-nums}
+.ilabel .t{flex:1}
+.ilabel .n{font-weight:700;font-size:13px;border:1px solid var(--ink);border-radius:4px;padding:0 5px;margin-left:4px}
+.lvb{display:flex;gap:5px;flex:none;justify-content:flex-end}
+.lb{width:42px;height:42px;border-radius:6px;border:1.5px solid transparent;display:grid;place-items:center;padding:0}
+.lb.L{background:var(--L);color:#2B1A00}
+.lb.D{background:var(--D);color:#2A0505}
+.lb.E{background:var(--E);color:var(--on-E);border-color:var(--E-edge)}
+.lb.na{display:none}
+.lb:active:not(:disabled){transform:scale(.94)}
+.eye{width:36px;height:42px;border:none;background:none;display:grid;place-items:center;padding:0;color:var(--muted);flex:none}
+.eye[aria-pressed="true"]{color:var(--ink)}
+.eye:disabled{opacity:.25;cursor:not-allowed}
+.idet{padding:0 14px 12px 14px}
+.idet[hidden]{display:none}
+.crit{border-left:3px solid var(--line);padding:4px 0 4px 10px;margin:8px 0}
+.crit.L{border-color:var(--L)} .crit.D{border-color:var(--D)} .crit.E{border-color:var(--E-edge)}
+.crit b{font-size:13px}
+.crit p{margin:1px 0 0;font-size:14px}
+.note{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);font:inherit;font-size:15px;margin-top:6px}
+
+/* Faltas */
+.flist{list-style:none;margin:0;padding:0}
+.frow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:8px 0}
+.frow .code{font-weight:700;min-width:56px;font-variant-numeric:tabular-nums}
+.frow .t{flex:1;font-size:15px}
+.frow .t span{display:block;color:var(--muted);font-size:13px}
+.frow a{color:var(--ink)}
+.del{border:1px solid var(--line);background:none;border-radius:6px;padding:6px 10px;font-size:14px}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:8px;padding:20px;text-align:center;color:var(--muted)}
+
+/* Barra inferior */
+.bar{flex:none;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:10px 0}
+.bar .wrap{display:grid;grid-template-columns:1fr;gap:10px}
+.barinfo{display:flex;align-items:center;gap:10px}
+.clock{font-weight:700;font-size:30px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.clock.over{text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px}
+.tally{display:flex;gap:6px;margin-left:auto}
+.chip{display:flex;align-items:center;gap:6px;padding:4px 9px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
+.barbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{border:1.5px solid var(--ink);background:var(--card);border-radius:8px;padding:11px 10px;font-weight:700;font-size:16px;min-height:48px}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.barbtns{position:relative}
+.pop{position:absolute;right:0;bottom:calc(100% + 12px);width:min(340px,calc(100vw - 28px));background:var(--card);border:1.5px solid var(--ink);border-radius:10px;padding:14px;z-index:60;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.pop[hidden]{display:none}
+.pop::after{content:"";position:absolute;right:calc(25% - 8px);bottom:-9px;width:14px;height:14px;background:var(--card);border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);transform:rotate(45deg)}
+.pop strong{display:block;font-size:16px;margin-bottom:4px}
+.pop p{margin:0 0 12px;font-size:14px;color:var(--muted)}
+.pop .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pop .acts button{border:1.5px solid var(--ink);background:var(--card);border-radius:8px;padding:10px;font-weight:700;font-size:15px}
+.pop .acts .yes{background:var(--ink);color:var(--paper)}
+@media (min-width:600px){.bar .wrap{grid-template-columns:auto 1fr;align-items:center}.barbtns{min-width:300px}.tally{margin-left:14px}}
+
+/* Resultado */
+.result{background:var(--card);border:1.5px solid var(--ink);border-radius:2px;margin:12px 0 18px;overflow:hidden}
+.result .band{background:var(--ink);color:var(--paper);text-align:center;padding:12px 10px 14px}
+.result .band p{margin:0;font-weight:500;font-size:14px}
+.result .band strong{display:block;font-size:40px;line-height:1.1;letter-spacing:-.5px}
+.rrow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:11px 16px;border-top:1px solid var(--line)}
+.rrow .codes{font-weight:600;font-size:18px;text-align:right;word-break:break-word;font-variant-numeric:tabular-nums}
+.reason{padding:11px 16px;border-top:1px solid var(--line);font-size:15px}
+.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;padding:9px 16px;background:var(--paper);border-bottom:1px solid var(--line)}
+.route{border-top:1px solid var(--line);padding:10px 12px 12px}
+.route svg{display:block;width:100%;height:auto;background:var(--paper);border-radius:4px}
+.route p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+
+/* Historial */
+.hcard{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:8px 0}
+.hcard header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.tag{font-weight:700;font-size:13px;padding:2px 8px;border-radius:4px;border:1.5px solid #000;background:#FFFFFF;color:#000000}
+.tag.no{background:#000000;color:#FFFFFF;border-color:#8A8A8A}
+.hcard p{margin:6px 0 0;font-size:14px;color:var(--muted)}
+.hact{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.confirm{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600;margin-top:6px}
+.confirm[hidden]{display:none}
+.confirm button{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:6px 12px;font-weight:600}
+.confirm .yes{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.freq{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.freq .code{font-weight:700}
+.barv{height:6px;border-radius:3px;background:var(--hi);overflow:hidden;margin-top:3px}
+.barv i{display:block;height:100%;background:var(--ink)}
+.linkbtn[hidden]{display:none}
+.linkbtn{background:none;border:none;color:var(--ink);font-weight:600;padding:8px 0;text-decoration:underline}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--barH) + 12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(16px);background:var(--ink);color:var(--paper);padding:9px 15px;border-radius:6px;font-weight:600;opacity:0;transition:all .15s;z-index:50;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:420px){
+  .clock{font-size:27px}
+  .chip{padding:3px 7px;font-size:14px}
+  .lb{width:38px;height:40px}.eye{width:32px;height:40px}
+  .ilabel .code{min-width:44px}
+  .ihead{padding-left:10px;gap:6px}
+  svg.ic{width:20px;height:20px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="row2">
+      <span class="gps" id="gps"><i></i><span id="gpsTxt">Ubicación inactiva</span></span>
+      <div class="hist-ctl">
+        <button class="ctl" id="undoBtn" aria-label="Deshacer" title="Deshacer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+        <button class="ctl" id="redoBtn" aria-label="Rehacer" title="Rehacer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-tab="hoja">Hoja</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="resultado">Resultado <span id="nF"></span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="historial">Historial</button>
+    </nav>
+  </div>
+</header>
+
+<main id="main"><div class="wrap">
+  <section id="tab-hoja">
+    <h2>Puntos a vigilar</h2>
+    <p class="hint" id="hojaHint"></p>
+    <div id="quick"></div>
+    <div class="sbox"><input class="search" id="search" type="search" placeholder="Buscar código o palabra (peatones, calado…)" autocomplete="off"><button class="sclear" id="sclear" type="button" aria-label="Borrar búsqueda" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <div id="sections"></div>
+  </section>
+
+  <section id="tab-resultado" hidden>
+    <div id="resultBox"></div>
+    <h2 id="fTitle">Faltas anotadas</h2>
+    <ul class="flist" id="flist"></ul>
+  </section>
+
+  <section id="tab-historial" hidden>
+    <h2>Códigos que más se repiten</h2>
+    <div id="freq"></div>
+    <h2>Simulaciones anteriores</h2>
+    <div id="hist"></div>
+    <button class="linkbtn" id="clearHist">Borrar todo el historial</button>
+  </section>
+</div></main>
+
+<div class="bar" id="bar">
+  <div class="wrap">
+    <div class="barinfo">
+      <div class="clock" id="clock">00:00</div>
+      <div class="tally" aria-label="Recuento de faltas">
+        <span class="chip" title="Leves"><span class="dot L"></span><span id="cL">0</span></span>
+        <span class="chip" title="Graves"><span class="dot D"></span><span id="cD">0</span></span>
+        <span class="chip" title="Eliminatorias"><span class="dot E"></span><span id="cE">0</span></span>
+      </div>
+    </div>
+    <div class="barbtns">
+      <button class="btn primary" id="startBtn">Iniciar</button>
+      <button class="btn" id="finishBtn" aria-haspopup="dialog" aria-expanded="false">Finalizar prueba</button>
+      <div class="pop" id="finishPop" role="dialog" aria-labelledby="popT" hidden>
+        <strong id="popT">¿Finalizar la prueba?</strong>
+        <p>Una vez finalizada no se podrán añadir, quitar ni editar faltas. El resultado se guardará en el historial.</p>
+        <div class="acts"><button class="no" id="popNo">Seguir</button><button class="yes" id="popYes">Finalizar</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const DATA = [
+ {n:"1",t:"Comprobaciones previas",items:[
+  ["1.1","Comprobaciones generales",{L:"No comprobar bien el estado del coche cuando lo pide el examinador: mandos, neumáticos, luces, niveles, claxon, batería, capó, chaleco, triángulos o documentación."}]
+ ]},
+ {n:"2",t:"Instalación en el vehículo",items:[
+  ["2.1","Asiento",{L:"No adoptar la postura correcta."}],
+  ["2.2","Espejos",{L:"No regular correctamente los retrovisores."}],
+  ["2.3","Cinturón",{L:"No usar el cinturón o no ajustarlo bien."}]
+ ]},
+ {n:"3",t:"Incorporación a la circulación",items:[
+  ["3.1","Observación",{L:"No observar el tráfico delante, detrás o a los lados."}],
+  ["3.2","Señalización",{L:"Omitir el intermitente, ponerlo al contrario, tarde o no quitarlo al terminar."}],
+  ["3.3","Ejecución",{D:"Incorporarse obstaculizando; usar mal el carril de aceleración o recorrer más de 15 m marcha atrás obstaculizando.",L:"Incorporación no gradual, con velocidad inadecuada, demorándola por inseguridad, más movimientos de los necesarios o golpear el bordillo."}]
+ ]},
+ {n:"4",t:"Progresión normal",items:[
+  ["4.1","Carril adecuado",{D:"No circular por el carril derecho cuando toca, obstaculizando.",L:"No ir por el carril derecho, ir pegado al eje en vías de un carril por sentido o circular por el arcén."}],
+  ["4.2","Separación frontal",{D:"Ir notablemente cerca del vehículo de delante (menos de la mitad de la distancia de seguridad)."}],
+  ["4.3","Separación lateral",{E:"Reducir peligrosamente la separación con peatones o ciclistas.",D:"Reducir notablemente la separación con peatones, ciclistas, vehículos u obstáculos.",L:"Salirse de la calzada por ir muy pegado al borde."}],
+  ["4.4","Velocidad adaptada",{E:"Velocidad inadecuada al estado de la vía o al tiempo, con riesgo.",D:"Velocidad anormalmente reducida sin causa, obstaculizando.",L:"Velocidad anormalmente reducida sin causa."}],
+  ["4.5","Velocidad máxima",{E:"Exceder en más de 30 km/h el límite.",D:"Exceder entre 20 y 30 km/h.",L:"Exceder entre 10 y 20 km/h."}],
+  ["4.6","Observación del entorno",{E:"Cruzar a velocidad excesiva un paso de peatones sin visibilidad lateral, o salpicar a otros causando riesgo.",D:"No facilitar el paso a vehículos de urgencia, detenerse sin necesidad obstaculizando o no ceder a peatones que suben o bajan del bus.",L:"No moderar la velocidad ante peatones o por el estado de la vía; detenerse sin necesidad detrás de un obstáculo por no anticiparlo."}]
+ ]},
+ {n:"5",t:"Desplazamientos laterales",items:[
+  ["5.1","Observación",{D:"Reducir mucho la velocidad sin observar ni avisar.",L:"No observar el tráfico delante, detrás o a los lados antes de desplazarse."}],
+  ["5.2","Señalización",{L:"Omitir el intermitente, ponerlo al contrario, tarde, demasiado pronto o no quitarlo."}],
+  ["5.3","Ejecución",{E:"Obligar a modificar bruscamente la trayectoria a quien tiene prioridad en un tramo estrecho.",D:"Desplazarse obstaculizando a los de detrás o de frente, o sin separación frontolateral suficiente.",L:"Desplazamiento brusco o no entrar cuanto antes en el carril de deceleración."}]
+ ]},
+ {n:"6",t:"Adelantamientos",items:[
+  ["6.1","Posición con el vehículo de delante",{D:"Empezar el adelantamiento notablemente pegado al de delante."}],
+  ["6.2","Velocidad",{D:"Empezar demasiado lejos o adelantar con lentitud, obstaculizando.",L:"Empezar demasiado lejos o adelantar sin suficiente diferencia de velocidad."}],
+  ["6.3","Selección del lugar",{E:"Adelantar en intersecciones sin visibilidad, en pasos de peatones, pasos a nivel o túneles de un carril.",D:"No adelantar cuando se le invita y las condiciones son idóneas, o adelantar obstaculizando el carril contiguo."}],
+  ["6.4","Desplazamientos del adelantamiento",{E:"Adelantar obstaculizando a los que vienen de frente o sin la separación lateral reglamentaria.",D:"Demorar la vuelta al carril derecho obstaculizando.",L:"No observar, no señalizar bien o tardar en volver al carril derecho."}],
+  ["6.5","Permitir el adelantamiento",{D:"Acelerar al ser adelantado o no ceñirse a la derecha, obstaculizando.",L:"Acelerar al ser adelantado o no ceñirse al borde derecho."}],
+  ["6.6","Adelantar por la derecha",{D:"Adelantar por la derecha fuera de los casos permitidos."}]
+ ]},
+ {n:"7",t:"Intersecciones",items:[
+  ["7.1","Observación",{L:"No observar el tráfico o la señalización, o tener que preguntar la dirección."}],
+  ["7.2","Señalización",{L:"Omitir el intermitente, ponerlo al contrario, tarde, demasiado pronto, no mantenerlo o no quitarlo."}],
+  ["7.3","Posición",{E:"Circular en sentido contrario dejando a la derecha una isleta, mediana o el centro de la rotonda.",D:"Posición inadecuada para el giro, obstaculizando.",L:"Posición inadecuada para o durante el cruce."}],
+  ["7.4","Velocidad",{E:"Cruzar a velocidad inadecuada para las condiciones de la intersección.",D:"Llegar o cruzar a velocidad excesivamente reducida, obstaculizando.",L:"Aproximarse a velocidad inadecuada o excesivamente reducida."}],
+  ["7.5","Detención",{E:"No detenerse obstaculizando al que tiene prioridad, a ciclistas o a peatones al girar.",D:"Detenerse sin necesidad o pasada la posición de entrada, obstaculizando.",L:"Frenazo ante semáforo, stop o ceda por no anticipar; detenerse antes de ganar visibilidad, sin necesidad o pasada la línea."}],
+  ["7.6","Reanudación de la marcha",{E:"Al reanudar, obstaculizar al vehículo con prioridad.",D:"No reanudar en el momento oportuno, obstaculizando.",L:"No reanudar la marcha en el momento oportuno."}]
+ ]},
+ {n:"8",t:"Cambio de sentido",items:[
+  ["8.1","Observación",{L:"No observar el tráfico."}],
+  ["8.2","Señalización",{L:"Señalización omitida, al contrario, tardía o no quitada."}],
+  ["8.3","Selección del lugar",{D:"Hacerlo en lugar prohibido, obstaculizando.",L:"Hacerlo en lugar prohibido."}],
+  ["8.4","Ejecución",{E:"Tres o más movimientos atrás de los necesarios.",D:"Obstaculizar la circulación o dos movimientos de más.",L:"Un movimiento de más o golpear el bordillo."}]
+ ]},
+ {n:"9",t:"Paradas y estacionamientos",items:[
+  ["9.1","Observación",{L:"No observar el tráfico."}],
+  ["9.2","Señalización",{L:"Señalización omitida, al contrario, tardía o excesivamente anticipada."}],
+  ["9.3","Selección del lugar",{D:"Lugar prohibido, obstaculizando.",L:"Lugar prohibido o hueco claramente inferior al coche."}],
+  ["9.4","Ejecución",{E:"En línea, sobresalir más de la mitad respecto a los demás; en batería, más de 1 m invadiendo la calzada.",D:"En línea, sobresalir menos de la mitad; en batería, más de medio metro; invadir la acera obstaculizando a peatones.",L:"No dejarlo centrado u oblicuo, no usar bien el espacio, golpear el bordillo, no poner el freno de mano o la marcha adecuada en pendiente. Máximo 2 minutos."}]
+ ]},
+ {n:"10",t:"Inmovilización y abandono del vehículo",items:[
+  ["10.1","Inmovilizar y salir del coche",{D:"Abrir la puerta o bajar sin observar, obstaculizando.",L:"No apagar el motor cuando procede o abrir la puerta sin observar."}]
+ ]},
+ {n:"11",t:"Obediencia de las señales",items:[
+  ["11.1","Agentes",{E:"No respetar las órdenes de un agente.",D:"Demorar la marcha cuando el agente da paso, obstaculizando.",L:"Demorar la marcha cuando el agente da paso."}],
+  ["11.2","Señalización circunstancial y variable",{E:"Incumplir señales de un panel variable o balizamiento.",D:"Incumplimientos no peligrosos de paneles variables.",L:"Incumplimientos menores de paneles variables."}],
+  ["11.3","Semáforos",{E:"Pasar en rojo o no ceder el paso al seguir una flecha verde.",D:"Pasar en ámbar fijo pudiendo parar, o detenerse sin necesidad en verde obstaculizando.",L:"Detenerse sin necesidad o no reanudar ante verde o ámbar intermitente."}],
+  ["11.4","Señales verticales",{E:"Incumplir stop, ceda el paso, prioridad en sentido contrario, prohibiciones de entrada o circulación; exceder en más de 30 km/h.",D:"Exceder entre 20 y 30 km/h, o no usar la preferencia obstaculizando.",L:"Exceder entre 10 y 20 km/h o no moderar ante ámbar intermitente."}],
+  ["11.5.1","Marcas longitudinales",{E:"Pisar o rebasar la línea continua que separa sentidos opuestos.",D:"Pisar la línea continua entre carriles del mismo sentido o ir sobre discontinuas obstaculizando.",L:"Circular sobre líneas discontinuas."}],
+  ["11.5.2","Marcas transversales (pasos de peatones)",{E:"No dejar pasar a peatones o ciclistas que cruzan por su paso, obligándoles a detenerse, desviarse o cambiar el ritmo.",D:"Obstaculizar a peatones o ciclistas que esperan con intención de cruzar, o cruzar el paso mientras ellos cruzan sin llegar a E.",L:"Rebasar la línea de detención o detenerse sin motivo sobre el paso."}],
+  ["11.5.3","Señales horizontales",{E:"Incumplir stop o ceda pintado, cruzar un cebreado entre sentidos opuestos, circular por carril reservado o exceder en más de 30 km/h.",D:"No seguir la flecha de selección de carril o exceder entre 20 y 30 km/h.",L:"Entrar en un cebreado o exceder entre 10 y 20 km/h."}],
+  ["11.5.4","Otras marcas blancas",{L:"Rebasar total o parcialmente una línea de detención."}],
+  ["11.5.5","Marcas de otros colores",{D:"Entrar en la cuadrícula amarilla pudiendo quedar atrapado, obstaculizando.",L:"Incumplir líneas amarillas o entrar en la cuadrícula amarilla."}]
+ ]},
+ {n:"12",t:"Luces",items:[
+  ["12.1","Mandos de luces",{E:"No saber usarlos cuando el examinador lo indica tras una falta."}],
+  ["12.3","Alumbrado de cruce",{E:"Circular sin alumbrado con notable falta de visibilidad.",L:"No encenderlo cuando es obligatorio (túnel, poca visibilidad)."}],
+  ["12.4","Alumbrado de carretera",{E:"Deslumbrar causando peligro.",L:"No usarlo cuando es obligatorio o usarlo donde está prohibido."}],
+  ["12.5","Antiniebla",{L:"Usar o no usar la antiniebla fuera de lo reglamentario."}],
+  ["12.6","Emergencia",{L:"Usar o no usar las luces de emergencia fuera de lo reglamentario."}]
+ ]},
+ {n:"13",t:"Manejo de mandos",items:[
+  ["13.1.1","Encendido y apagado del motor",{L:"No conseguir arrancar, arrancar con marcha metida provocando salto o no apagar cuando toca."}],
+  ["13.1.2","Embrague",{E:"Confusión de pedal con peligro.",L:"Desembragar sin justificación (ir a vela)."}],
+  ["13.1.3","Freno de servicio",{L:"Frenar de forma brusca por no hacerlo con antelación y progresividad."}],
+  ["13.1.4","Acelerador",{L:"No acelerar con progresividad, suavidad y decisión."}],
+  ["13.1.5","Relaciones de marcha",{L:"Marcha inadecuada a la velocidad, punto muerto antes de parar o calado por marcha inadecuada."}],
+  ["13.1.6","Freno de estacionamiento",{D:"No quitar el freno de mano afectando claramente a la marcha.",L:"No quitar el freno de mano o calar por llevarlo puesto."}],
+  ["13.1.7","Volante",{L:"Una sola mano sin motivo, soltar las dos, manos cruzadas o giro brusco por no anticipar."}],
+  ["13.1.8","Conducción eficiente",{L:"No conducir de forma eficiente (se anota una vez al final)."}],
+  ["13.2.1","Embrague y freno",{L:"Pisar el embrague antes que el freno o a la vez sin necesidad; calado."}],
+  ["13.2.2","Embrague y acelerador",{E:"Dejar caer el coche más de 50 cm hacia atrás con peligro.",D:"Dejar caer el coche más de 50 cm hacia atrás.",L:"Calado del motor, acelerones en vacío o arranque brusco."}],
+  ["13.2.3","Embrague y caja de cambios",{L:"Cambios bruscos, rascar marchas o reducir sin soltar el embrague."}],
+  ["13.2.4","Embrague y dirección",{L:"Desembragar en curva o en un cambio de dirección."}],
+  ["13.2.5","Freno y dirección",{L:"Frenar en curva sin necesidad."}],
+  ["13.2.6","Acelerador y caja de cambios",{L:"Acelerar mientras se cambia, o no revolucionar lo suficiente y que el motor traquetee."}]
+ ]},
+ {n:"14",t:"Otros mandos y accesorios",items:[
+  ["14.1","Limpiaparabrisas",{E:"No saber usarlo cuando es imprescindible.",L:"No usarlo cuando hace falta."}],
+  ["14.2","Claxon",{L:"No usarlo cuando hace falta o usarlo de forma antirreglamentaria."}],
+  ["14.3","Mandos de seguridad",{L:"Iniciar la marcha con una puerta mal cerrada."}],
+  ["14.4","Mandos de visibilidad",{L:"No desempañar o no usar el parasol cuando hace falta."}]
+ ]},
+ {n:"15",t:"Durante el desarrollo de la prueba",items:[
+  ["15.1.1","Accidente",{E:"Golpear a personas, animales, vehículos u objetos."}],
+  ["15.1.2","Maniobra evasiva",{E:"Crear un riesgo real que obliga a otro a frenar o desviarse bruscamente."}],
+  ["15.1.3","Falta de visibilidad",{E:"Invadir el sentido contrario donde hay poca visibilidad."}],
+  ["15.1.4","Pérdida de dominio",{E:"No ser capaz de controlar la trayectoria del coche."}],
+  ["15.1.6","Intervención del profesor o del frenado automático",{E:"El profesor o el sistema AEB actúan sobre los mandos, o se ayuda al aspirante."}],
+  ["15.2","Bordillo",{E:"Subir al bordillo con alguna rueda.",L:"Subir al bordillo con una rueda trasera."}],
+  ["15.3","No seguir las indicaciones",{D:"No seguir reiteradamente las indicaciones del examinador (tres veces)."}]
+ ]}
+];
+const SEED = ["11.5.2","7.5","7.2","5.1","13.2.2"];
+const LVNAME = {L:"Leve",D:"Grave",E:"Eliminatoria"};
+const LVSHORT = {L:"L",D:"G",E:"E"};
+const ICON = {
+  L:`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M7.5 12h9"/></svg>`,
+  D:`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 21.6 20H2.4Z"/><path d="M12 9.5v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>`,
+  E:`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 2.5h7.6l5.7 5.7v7.6l-5.7 5.7H8.2l-5.7-5.7V8.2Z"/><path d="m9 9 6 6M15 9l-6 6"/></svg>`,
+  eyeOn:`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  eyeOff:`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path d="M3.5 3.5l17 17"/></svg>`
+};
+const INDEX = {}; const ORDER=[];
+DATA.forEach(s=>s.items.forEach(([c,t,cr])=>{INDEX[c]={c,t,cr,sec:s};ORDER.push(c)}));
+
+const store = {
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+const fresh=()=>({running:false,start:0,acc:0,faults:[],date:Date.now(),track:[]});
+let S = Object.assign(fresh(), store.get("dgtsim.current",{}));
+let HIST = store.get("dgtsim.history",[]).map((x,i)=>Object.assign({id:x.id||("h"+x.date+"_"+i)},x));
+let LAST = store.get("dgtsim.last",null);
+let WATCH = store.get("dgtsim.watch",null);
+if(!WATCH){WATCH={};SEED.forEach(c=>WATCH[c]=true);HIST.forEach(x=>x.faults.forEach(f=>WATCH[f.code]=true));store.set("dgtsim.watch",WATCH)}
+let undoStack=[], redoStack=[];
+const save=()=>store.set("dgtsim.current",S);
+const saveHist=()=>store.set("dgtsim.history",HIST);
+
+const $=id=>document.getElementById(id);
+const elapsed=()=>S.acc+(S.running?Date.now()-S.start:0);
+const active=()=>S.running||S.acc>0||S.faults.length>0;
+const fmt=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* Geolocalización */
+let watchId=null, lastPos=null;
+function setGps(state,txt){$("gps").classList.toggle("on",state==="on");$("gpsTxt").textContent=txt}
+function startGps(){
+  if(watchId!==null)return;
+  if(!("geolocation" in navigator)){setGps("off","Ubicación no disponible");return}
+  try{
+    setGps("off","Buscando ubicación…");
+    watchId=navigator.geolocation.watchPosition(p=>{
+      lastPos={lat:+p.coords.latitude.toFixed(6),lon:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy),t:elapsed()};
+      setGps("on",`Ubicación activa (±${lastPos.acc} m)`);
+      const tr=S.track,prev=tr[tr.length-1];
+      if(S.running&&(!prev||dist(prev,lastPos)>15||lastPos.t-prev.t>20000)){tr.push(lastPos);if(tr.length>3000)tr.splice(0,tr.length-3000);save()}
+    },err=>{
+      setGps("off",err.code===1?"Ubicación bloqueada (permiso o visor)":"Ubicación no disponible en esta vista");
+      stopGps();
+    },{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
+  }catch(e){setGps("off","Ubicación no disponible en esta vista")}
+}
+function stopGps(){if(watchId!==null){try{navigator.geolocation.clearWatch(watchId)}catch(e){}watchId=null}}
+function dist(a,b){const R=6371000,toR=x=>x*Math.PI/180;const dLa=toR(b.lat-a.lat),dLo=toR(b.lon-a.lon);
+  const h=Math.sin(dLa/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+const mapUrl=p=>`https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=18/${p.lat}/${p.lon}`;
+
+/* Baremo */
+function evaluate(f){
+  const L=f.filter(x=>x.lv==="L").length,D=f.filter(x=>x.lv==="D").length,E=f.filter(x=>x.lv==="E").length;
+  let no=false,reason="Apto: menos de dos graves, menos de una grave con cinco leves y menos de diez leves.";
+  if(E>=1){no=true;reason="No apto por una falta eliminatoria."}
+  else if(D>=2){no=true;reason="No apto por dos faltas graves."}
+  else if(D===1&&L>=5){no=true;reason="No apto por una grave y cinco leves."}
+  else if(L>=10){no=true;reason="No apto por diez faltas leves."}
+  return {L,D,E,no,reason};
+}
+
+/* Faltas con deshacer y rehacer */
+function beginIfIdle(){if(!active()){S.running=true;S.start=Date.now();S.date=Date.now();S.track=[];startGps()}}
+function addFault(code,lv,note){
+  beginIfIdle();
+  const f={id:Date.now()+Math.random(),code,lv,t:elapsed(),note:note||"",pos:lastPos?{lat:lastPos.lat,lon:lastPos.lon,acc:lastPos.acc}:null};
+  S.faults.push(f);record({type:"add",f});
+  save();toast(`${code} anotada como ${LVNAME[lv].toLowerCase()}`);renderAll();
+}
+function removeFault(id){
+  const i=S.faults.findIndex(x=>x.id===id);if(i<0)return;
+  const [f]=S.faults.splice(i,1);record({type:"remove",f,i});
+  save();toast(`Quitada ${f.code}`);renderAll();
+}
+function doAct(a,dir){
+  const fwd=dir===1;
+  switch(a.type){
+    case "add": if(fwd)S.faults.push(a.f);else S.faults=S.faults.filter(x=>x.id!==a.f.id);save();
+      return fwd?`Rehecha ${a.f.code}`:`Deshecha ${a.f.code}`;
+    case "remove": if(fwd)S.faults=S.faults.filter(x=>x.id!==a.f.id);else S.faults.splice(Math.min(a.i,S.faults.length),0,a.f);save();
+      return fwd?`Quitada ${a.f.code}`:`Recuperada ${a.f.code}`;
+    case "watch": WATCH[a.c]=fwd?a.next:a.prev;store.set("dgtsim.watch",WATCH);
+      return `${a.c} ${WATCH[a.c]?"añadido a":"quitado de"} puntos a vigilar`;
+    case "hdel":
+      if(fwd){HIST=HIST.filter(y=>y.id!==a.rec.id);if(a.wasLast)LAST=null}
+      else{HIST.splice(Math.min(a.i,HIST.length),0,a.rec);if(a.wasLast)LAST=a.rec}
+      saveHist();store.set("dgtsim.last",LAST);
+      return fwd?"Simulación eliminada":"Simulación recuperada";
+    case "hclear":
+      if(fwd){HIST=[];LAST=null}else{HIST=a.recs.slice();LAST=a.last}
+      saveHist();store.set("dgtsim.last",LAST);
+      return fwd?"Historial borrado":"Historial recuperado";
+  }
+  return "";
+}
+function record(a){undoStack.push(a);redoStack=[]}
+function undo(){const a=undoStack.pop();if(!a)return;const m=doAct(a,-1);redoStack.push(a);toast(m);renderAll()}
+function redo(){const a=redoStack.pop();if(!a)return;const m=doAct(a,1);undoStack.push(a);toast(m);renderAll()}
+function toggleWatch(c){const a={type:"watch",c,prev:!!WATCH[c],next:!WATCH[c]};record(a);toast(doAct(a,1));renderAll()}
+
+/* Render */
+function renderBar(){
+  const L=S.faults.filter(x=>x.lv==="L").length,D=S.faults.filter(x=>x.lv==="D").length,E=S.faults.filter(x=>x.lv==="E").length;
+  $("cL").textContent=L;$("cD").textContent=D;$("cE").textContent=E;
+  $("nF").textContent=S.faults.length?`(${S.faults.length})`:"";
+  $("startBtn").textContent=S.running?"Pausar":(S.acc>0?"Reanudar":"Iniciar");
+  $("undoBtn").disabled=!undoStack.length;$("redoBtn").disabled=!redoStack.length;
+  $("finishBtn").disabled=!active();if(!active())closePop();
+}
+function tick(){const ms=elapsed();const c=$("clock");c.textContent=fmt(ms);c.classList.toggle("over",ms>25*60000);c.title=ms>25*60000?"Tiempo de examen cumplido":"Objetivo 25 minutos"}
+
+const openItems=new Set();
+function itemEl(c,scope){
+  const it=INDEX[c];const n=S.faults.filter(f=>f.code===c).length;const key=scope+c;
+  const open=openItems.has(key);const w=!!WATCH[c];const act=active();
+  const d=document.createElement("div");d.className="item";
+  d.innerHTML=`<div class="ihead">
+      <button class="ilabel" type="button" aria-expanded="${open}"><span class="code">${c}</span><span class="t">${it.t}${n?`<span class="n">×${n}</span>`:""}</span></button>
+      <div class="lvb">
+        ${act?"":`<button class="eye" type="button" aria-pressed="${w}" aria-label="${w?"Quitar de":"Añadir a"} puntos a vigilar" title="${w?"Quitar de":"Añadir a"} puntos a vigilar">${w?ICON.eyeOn:ICON.eyeOff}</button>`}
+        ${act?["L","D","E"].map(k=>`<button class="lb ${k}${it.cr[k]?"":" na"}" type="button" data-lv="${k}" ${it.cr[k]?"":'disabled aria-hidden="true" tabindex="-1"'} aria-label="Anotar ${LVNAME[k].toLowerCase()} en ${c}" title="${LVNAME[k]}">${ICON[k]}</button>`).join(""):""}
+      </div>
+    </div>
+    <div class="idet" ${open?"":"hidden"}>
+      ${["E","D","L"].filter(k=>it.cr[k]).map(k=>`<div class="crit ${k}"><b>${LVNAME[k]}</b><p>${it.cr[k]}</p></div>`).join("")}
+      ${act?`<input class="note" placeholder="Nota opcional antes de anotar (dónde, qué pasó)">`:""}
+    </div>`;
+  const det=d.querySelector(".idet"),lab=d.querySelector(".ilabel"),eye=d.querySelector(".eye");
+  lab.onclick=()=>{const o=det.hidden;det.hidden=!o;lab.setAttribute("aria-expanded",o);o?openItems.add(key):openItems.delete(key)};
+  if(eye)eye.onclick=()=>toggleWatch(c);
+  d.querySelectorAll(".lb").forEach(b=>b.onclick=()=>{const n=d.querySelector(".note");addFault(c,b.dataset.lv,n?n.value.trim():"")});
+  return d;
+}
+function renderQuick(){
+  const list=ORDER.filter(c=>WATCH[c]);const q=$("quick");q.innerHTML="";
+  if(!list.length){q.innerHTML=`<div class="empty">No hay puntos a vigilar. Aparecerán al finalizar una prueba con faltas, o puedes añadirlos con el ojo de cada código.</div>`;return}
+  const b=document.createElement("div");b.className="box";list.forEach(c=>b.appendChild(itemEl(c,"q")));q.appendChild(b);
+}
+const openSecs=new Set();
+function renderSections(){
+  const q=$("search").value.trim().toLowerCase();const box=$("sections");box.innerHTML="";
+  DATA.forEach(s=>{
+    const items=s.items.filter(([c,t,cr])=>!q||c.includes(q)||t.toLowerCase().includes(q)||Object.values(cr).join(" ").toLowerCase().includes(q));
+    if(!items.length)return;
+    const d=document.createElement("details");d.className="sec";if(q||openSecs.has(s.n))d.open=true;
+    d.addEventListener("toggle",()=>{if(!q){d.open?openSecs.add(s.n):openSecs.delete(s.n)}});
+    const n=S.faults.filter(f=>INDEX[f.code].sec===s).length;
+    d.innerHTML=`<summary><span class="sn">${s.n}</span><span>${s.t}</span><span class="count">${n?n+" anotada"+(n>1?"s":""):""}</span><span class="chev"></span></summary>`;
+    items.forEach(([c])=>d.appendChild(itemEl(c,"s")));
+    box.appendChild(d);
+  });
+  if(!box.children.length)box.innerHTML=`<div class="empty">Ningún código coincide con “${esc(q)}”. Prueba con otra palabra o con el número.</div>`;
+}
+
+function routeSvg(track,faults){
+  const pts=[...track,...faults.filter(f=>f.pos).map(f=>f.pos)];
+  if(pts.length<1)return `<div class="route"><p>Sin datos de ubicación en esta prueba, así que no se puede dibujar el recorrido.</p></div>`;
+  let minLa=Infinity,maxLa=-Infinity,minLo=Infinity,maxLo=-Infinity;
+  pts.forEach(p=>{minLa=Math.min(minLa,p.lat);maxLa=Math.max(maxLa,p.lat);minLo=Math.min(minLo,p.lon);maxLo=Math.max(maxLo,p.lon)});
+  const k=Math.cos((minLa+maxLa)/2*Math.PI/180);
+  const w=Math.max((maxLo-minLo)*k,1e-4),h=Math.max(maxLa-minLa,1e-4);
+  const W=600,H=Math.round(Math.min(420,Math.max(220,W*h/w))),pad=24;
+  const sc=Math.min((W-2*pad)/w,(H-2*pad)/h);
+  const X=p=>pad+((p.lon-minLo)*k)*sc+((W-2*pad)-w*sc)/2, Y=p=>H-pad-(p.lat-minLa)*sc-((H-2*pad)-h*sc)/2;
+  const line=track.length>1?`<polyline points="${track.map(p=>X(p).toFixed(1)+","+Y(p).toFixed(1)).join(" ")}" fill="none" stroke="var(--muted)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`:"";
+  const start=track.length?`<circle cx="${X(track[0])}" cy="${Y(track[0])}" r="6" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/>`:"";
+  const marks=faults.filter(f=>f.pos).map(f=>{const x=X(f.pos),y=Y(f.pos);
+    return `<g><circle cx="${x}" cy="${y}" r="8" fill="var(--${f.lv})" stroke="var(--ink)" stroke-width="1.5"/><text x="${x+11}" y="${y+4}" font-size="13" font-weight="700" fill="var(--ink)" font-family="Public Sans, sans-serif">${f.code}</text></g>`}).join("");
+  return `<div class="route"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Recorrido de la prueba con las faltas marcadas">${line}${start}${marks}</svg><p>Recorrido aproximado. El círculo blanco es la salida.</p></div>`;
+}
+function codesOf(f,lv){const a=f.filter(x=>x.lv===lv).map(x=>x.code);return a.length?a.join(" - "):"0"}
+function resultCard(rec){
+  const r=evaluate(rec.faults);const d=new Date(rec.date);
+  return `<div class="result">
+    <div class="meta"><span>Clase B, circulación</span><span class="num">${d.toLocaleDateString("es-ES")}, ${fmt(rec.ms)}</span></div>
+    <div class="band"><p>Resultado de la simulación</p><strong>${r.no?"No apto":"Apto"}</strong></div>
+    <div class="rrow"><span class="dot L"></span><span>Leves</span><span class="codes">${codesOf(rec.faults,"L")}</span></div>
+    <div class="rrow"><span class="dot D"></span><span>Graves</span><span class="codes">${codesOf(rec.faults,"D")}</span></div>
+    <div class="rrow"><span class="dot E"></span><span>Eliminatorias</span><span class="codes">${codesOf(rec.faults,"E")}</span></div>
+    <div class="reason">${r.reason}</div>
+    ${routeSvg(rec.track||[],rec.faults)}
+  </div>`;
+}
+function faultRow(f,editable){
+  const li=document.createElement("li");li.className="frow";
+  const loc=f.pos?` <a href="${mapUrl(f.pos)}" target="_blank" rel="noopener">Ver ubicación</a>`:"";
+  li.innerHTML=`<span class="dot ${f.lv}"></span><span class="code">${f.code}</span><span class="t">${INDEX[f.code].t}<span>${LVNAME[f.lv]}, minuto ${fmt(f.t)}${f.note?". "+esc(f.note):""}.${loc}</span></span>`;
+  if(editable){const del=document.createElement("button");del.className="del";del.textContent="Quitar";del.onclick=()=>removeFault(f.id);li.appendChild(del)}
+  return li;
+}
+function renderResult(){
+  const ul=$("flist");ul.innerHTML="";
+  if(active()||!LAST){
+    $("resultBox").innerHTML=`<p class="hint" style="margin-top:18px">El resultado aparecerá aquí al finalizar la prueba.</p>`;
+    $("fTitle").textContent="Faltas anotadas";
+    if(!S.faults.length)ul.innerHTML=`<li class="empty">Aún no hay faltas. Anótalas desde la hoja.</li>`;
+    S.faults.slice().reverse().forEach(f=>ul.appendChild(faultRow(f,true)));
+  }else{
+    $("resultBox").innerHTML=resultCard(LAST);
+    $("fTitle").textContent="Faltas de la prueba";
+    if(!LAST.faults.length)ul.innerHTML=`<li class="empty">Prueba sin faltas.</li>`;
+    LAST.faults.forEach(f=>ul.appendChild(faultRow(f,false)));
+  }
+}
+function renderHistory(){
+  const h=$("hist");h.innerHTML="";$("clearHist").hidden=!HIST.length;
+  if(!HIST.length)h.innerHTML=`<div class="empty">Cuando finalices una prueba aparecerá aquí, con sus códigos y su recorrido.</div>`;
+  HIST.slice().reverse().forEach(x=>{
+    const r=evaluate(x.faults);const c=document.createElement("div");c.className="hcard";
+    c.innerHTML=`<header><strong>${new Date(x.date).toLocaleString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</strong><span class="tag ${r.no?"no":""}">${r.no?"No apto":"Apto"}</span></header>
+      <p>${r.L} leves, ${r.D} graves y ${r.E} eliminatorias en ${fmt(x.ms)}.</p>
+      <p>${x.faults.length?x.faults.map(f=>f.code+" ("+LVSHORT[f.lv]+")").join(", "):"Sin faltas"}</p>
+      <div class="hact"><button class="linkbtn view">Ver hoja de resultado</button><button class="linkbtn delh">Eliminar</button></div>
+      <div class="confirm" hidden><span>¿Eliminar esta simulación?</span><button class="yes">Eliminar</button><button class="no">Cancelar</button></div>
+      <div class="hres"></div>`;
+    const v=c.querySelector(".view"),box=c.querySelector(".hres"),cf=c.querySelector(".confirm");
+    v.onclick=()=>{if(box.innerHTML){box.innerHTML="";v.textContent="Ver hoja de resultado"}else{box.innerHTML=resultCard(x);v.textContent="Ocultar hoja"}};
+    c.querySelector(".delh").onclick=()=>{cf.hidden=false};
+    cf.querySelector(".no").onclick=()=>{cf.hidden=true};
+    cf.querySelector(".yes").onclick=()=>{
+      const a={type:"hdel",rec:x,i:HIST.findIndex(y=>y.id===x.id),wasLast:!!(LAST&&LAST.id===x.id)};
+      record(a);toast(doAct(a,1));renderAll();
+    };
+    h.appendChild(c);
+  });
+  const all={};HIST.forEach(x=>x.faults.forEach(f=>{all[f.code]=(all[f.code]||0)+1}));
+  const top=Object.entries(all).sort((a,b)=>b[1]-a[1]).slice(0,6);const fq=$("freq");
+  if(!top.length){fq.innerHTML=`<div class="empty">Necesitas al menos una prueba finalizada con faltas para ver qué se repite.</div>`;return}
+  const max=top[0][1];
+  fq.innerHTML=`<div class="freq">${top.map(([c,n])=>`<span class="code">${c}</span><span><span style="font-size:14px">${INDEX[c].t}</span><span class="barv"><i style="width:${n/max*100}%"></i></span></span><strong class="num">${n}</strong>`).join("")}</div>`;
+}
+function renderHint(){$("hojaHint").textContent=active()?"Anota cada falta con su botón: círculo leve, triángulo grave, stop eliminatoria. Solo aparecen los niveles que existen para cada código.":"Pulsa Iniciar para mostrar los botones de puntuación. Fuera de la prueba, el ojo añade o quita el código de esta lista; también se añaden solos al finalizar una prueba con faltas."}
+function renderAll(){renderHint();renderBar();tick();renderQuick();renderSections();renderResult();renderHistory()}
+
+/* Controles */
+$("startBtn").onclick=()=>{
+  if(S.running){S.acc=elapsed();S.running=false}
+  else{if(!active()){S.date=Date.now();S.track=[]}S.running=true;S.start=Date.now();startGps()}
+  save();renderAll();
+};
+function finishTest(){
+  closePop();if(!active())return;
+  const rec={id:"h"+Date.now(),date:S.date,ms:elapsed(),faults:S.faults,track:S.track};
+  HIST.push(rec);saveHist();LAST=rec;store.set("dgtsim.last",LAST);
+  rec.faults.forEach(f=>WATCH[f.code]=true);store.set("dgtsim.watch",WATCH);
+  S=fresh();const keep=a=>a.type!=="add"&&a.type!=="remove";undoStack=undoStack.filter(keep);redoStack=redoStack.filter(keep);save();stopGps();setGps("off","Ubicación inactiva");
+  renderAll();showTab("resultado");toast("Prueba finalizada");
+}
+function openPop(){$("finishPop").hidden=false;$("finishBtn").setAttribute("aria-expanded","true");$("popNo").focus()}
+function closePop(){const p=$("finishPop");if(!p)return;p.hidden=true;$("finishBtn").setAttribute("aria-expanded","false")}
+$("finishBtn").onclick=e=>{e.stopPropagation();if(!active())return;$("finishPop").hidden?openPop():closePop()};
+$("popYes").onclick=finishTest;
+$("popNo").onclick=()=>{closePop();$("finishBtn").focus()};
+$("finishPop").addEventListener("click",e=>e.stopPropagation());
+document.addEventListener("click",()=>{if(!$("finishPop").hidden)closePop()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closePop()});
+$("undoBtn").onclick=undo;$("redoBtn").onclick=redo;
+let clearArmed=false;
+$("clearHist").onclick=e=>{
+  if(!clearArmed){clearArmed=true;e.target.textContent="Toca otra vez para borrar todo";setTimeout(()=>{clearArmed=false;e.target.textContent="Borrar todo el historial"},3000);return}
+  const a={type:"hclear",recs:HIST.slice(),last:LAST};record(a);clearArmed=false;e.target.textContent="Borrar todo el historial";toast(doAct(a,1));renderAll();
+};
+$("search").addEventListener("input",()=>{$("sclear").hidden=!$("search").value;renderSections()});
+$("sclear").onclick=()=>{$("search").value="";$("sclear").hidden=true;renderSections();$("search").focus()};
+function showTab(t){
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
+  ["hoja","resultado","historial"].forEach(x=>$("tab-"+x).hidden=x!==t);$("main").scrollTop=0;
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),1500)}
+
+/* La barra inferior nunca tapa el contenido */
+function syncBar(){document.documentElement.style.setProperty("--barH",$("bar").offsetHeight+"px")}
+try{new ResizeObserver(syncBar).observe($("bar"))}catch(e){}
+window.addEventListener("resize",syncBar);syncBar();
+
+if(S.running)startGps();
+renderAll();setInterval(tick,500);
+</script>
+</body>
+</html>
