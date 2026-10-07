@@ -425,8 +425,9 @@ let LAST = store.get("dgtsim.last",null);
 let WATCH = store.get("dgtsim.watch",null);
 if(!WATCH){WATCH={};SEED.forEach(c=>WATCH[c]=true);HIST.forEach(x=>x.faults.forEach(f=>WATCH[f.code]=true));store.set("dgtsim.watch",WATCH)}
 const DEF={autoWatch:true,showWatch:true,bigButtons:false,examMin:25,showTally:true,confirmFinish:true,vibrate:true,wakeLock:true,
-  gps:true,gpsDist:15,mapStyle:"auto",mapLabels:true,routeWidth:4,theme:"auto"};
+  gps:true,gpsDist:15,mapStyle:"osm",mapLabels:true,routeWidth:4,theme:"auto"};
 let SET=Object.assign({},DEF,store.get("dgtsim.settings",{}));
+if(!["osm","light","roads"].includes(SET.mapStyle))SET.mapStyle="osm";
 const saveSet=()=>store.set("dgtsim.settings",SET);
 let undoStack=[], redoStack=[];
 const save=()=>store.set("dgtsim.current",S);
@@ -610,67 +611,84 @@ const CARTO_A=OSM_A+' © <a href="https://carto.com/attributions" target="_blank
 const GLYPHS="https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
 const OSM_RASTER="https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 function mapCfg(){
-  let st=SET.mapStyle;if(st==="auto")st=isDark()?"dark":"light";
-  if(st==="light"||st==="dark")return {kind:"vector",dark:st==="dark",attr:OFM_A,raster:OSM_RASTER};
-  if(st==="roads"&&_tq())return {kind:"raster",dark:false,attr:CARTO_A,raster:`https://basemaps.cartocdn.com/rastertiles/${SET.mapLabels?"voyager":"voyager_nolabels"}/{z}/{x}/{y}.png?key=${encodeURIComponent(_tq())}`};
+  const st=SET.mapStyle;
+  if(st==="light")return {kind:"vector",dark:false,attr:OFM_A,raster:OSM_RASTER};
+  if(st==="roads"&&_tq())return {kind:"raster",dark:false,attr:CARTO_A,vivid:true,raster:`https://basemaps.cartocdn.com/rastertiles/${SET.mapLabels?"voyager":"voyager_nolabels"}/{z}/{x}/{y}.png?key=${encodeURIComponent(_tq())}`};
   return {kind:"raster",dark:false,attr:OSM_A,raster:OSM_RASTER};
 }
-const PAL={
-  light:{bg:"#EFEEEB",water:"#C5D3DC",green:"#DEE5D5",bld:"#E0DDD8",bldLine:"#D3D0CA",rail:"#B9B7B3",
-    svc:"#FFFFFF",minor:"#FFFFFF",major:"#FFFFFF",motor:"#F3DDA6",cas:"#C2C0BC",majCas:"#A3A19D",motCas:"#C4A157",
-    label:"#333333",halo:"#FFFFFF",arrow:"#7E7E7E",place:"#1F1F1F",ink:"#262626"},
-  dark:{bg:"#3C4047",water:"#2B3843",green:"#3D4741",bld:"#474C53",bldLine:"#50555D",rail:"#5C6169",
-    svc:"#5B616A",minor:"#6A707A",major:"#878D97",motor:"#A08E62",cas:"#30343A",majCas:"#2A2D32",motCas:"#2A2D32",
-    label:"#EEEEEE",halo:"#34383E",arrow:"#D4D8DE",place:"#F5F5F5",ink:"#F2F2F2"}
-};
+const PAL={light:{
+  bg:"#F2EFE9",resid:"#E3E0DC",park:"#C8E8A8",wood:"#ADD19E",water:"#9FCBE0",bld:"#D9D0C9",bldLine:"#C2B5AA",rail:"#9A9A9A",
+  ped:"#DDDDE8",pedCas:"#B9B9C9",
+  svc:"#FFFFFF",minor:"#FFFFFF",ter:"#FFFFFF",sec:"#F4F7A8",pri:"#FCCF8E",trunk:"#F9A98E",motor:"#E8899B",
+  svcCas:"#C9C9C9",minCas:"#ABABAB",terCas:"#8F8F8F",secCas:"#7A8A05",priCas:"#A06B00",trunkCas:"#C04A2A",motCas:"#D02860",
+  label:"#222222",halo:"#FFFFFF",arrow:"#5E6A7E",place:"#111111",house:"#7A6F66",park_lbl:"#2F6B1F",ink:"#1F2A44"}};
 const ZW=stops=>["interpolate",["exponential",1.5],["zoom"],...stops.flat()];
 const isCls=list=>["match",["get","class"],list,true,false];
 function buildStyle(cfg){
   if(cfg.kind==="raster")return {version:8,glyphs:GLYPHS,sources:{base:{type:"raster",tiles:[cfg.raster],tileSize:256,maxzoom:19,attribution:cfg.attr}},
-    layers:[{id:"base",type:"raster",source:"base"}]};
-  const p=PAL[cfg.dark?"dark":"light"],src="ofm",sl=l=>({source:src,"source-layer":l});
-  const MAJ=["primary","secondary","tertiary","trunk"],MOT=["motorway"];
-  const W={svc:[[14,.6],[16,2.5],[18,7]],minor:[[12,.6],[14,2],[16,6],[18,15]],major:[[8,.6],[12,2],[14,4.5],[16,9],[18,20]],motor:[[6,.7],[10,2],[14,5.5],[16,10],[18,22]]};
-  const cas=s=>s.map(([z,w])=>[z,w+(z>=14?2.4:1)]);
-  const road=(id,cls,w,color,minz,casing)=>({id,type:"line",...sl("transportation"),minzoom:minz,
-    filter:["all",isCls(cls),["!=",["get","brunnel"],"tunnel"]],layout:{"line-cap":"round","line-join":"round"},
-    paint:{"line-color":color,"line-width":ZW(casing?cas(w):w)}});
+    layers:[{id:"base",type:"raster",source:"base",paint:cfg.vivid?{"raster-saturation":0.45,"raster-contrast":0.12}:{}}]};
+  const p=PAL.light,src="ofm",sl=l=>({source:src,"source-layer":l});
+  const noTun=["!=",["get","brunnel"],"tunnel"];
+  const W={svc:[[13,.6],[15,2.5],[17,6],[19,14]],minor:[[11,.5],[13,1.8],[15,5],[17,11],[19,26]],ter:[[10,.8],[13,2.6],[15,6],[17,13],[19,28]],
+    major:[[7,.7],[11,2],[13,3.6],[15,7.5],[17,15],[19,32]],motor:[[5,.8],[9,2],[13,4.5],[15,9],[17,17],[19,34]],ped:[[14,1],[16,3.5],[18,8]]};
+  const cas=s=>s.map(([z,w])=>[z,w+(z>=13?2.2:.9)]);
+  const road=(id,filter,w,color,minz,casing)=>({id,type:"line",...sl("transportation"),minzoom:minz,filter:["all",filter,noTun],
+    layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":color,"line-width":ZW(casing?cas(w):w)}});
+  const PED=["all",["==",["get","class"],"path"],["match",["get","subclass"],["pedestrian","living_street"],true,false]];
+  const R={svc:isCls(["service"]),minor:isCls(["minor"]),ter:isCls(["tertiary"]),sec:isCls(["secondary"]),pri:isCls(["primary"]),trunk:isCls(["trunk"]),motor:isCls(["motorway"])};
   const layers=[
     {id:"bg",type:"background",paint:{"background-color":p.bg}},
-    {id:"green",type:"fill",...sl("landcover"),filter:isCls(["wood","grass"]),paint:{"fill-color":p.green,"fill-opacity":.7}},
-    {id:"park",type:"fill",...sl("park"),paint:{"fill-color":p.green,"fill-opacity":.6}},
+    {id:"resid",type:"fill",...sl("landuse"),filter:isCls(["residential","suburb","neighbourhood"]),paint:{"fill-color":p.resid}},
+    {id:"wood",type:"fill",...sl("landcover"),filter:isCls(["wood"]),paint:{"fill-color":p.wood}},
+    {id:"grass",type:"fill",...sl("landcover"),filter:isCls(["grass"]),paint:{"fill-color":p.park}},
+    {id:"park",type:"fill",...sl("park"),paint:{"fill-color":p.park}},
     {id:"water",type:"fill",...sl("water"),paint:{"fill-color":p.water}},
-    {id:"waterway",type:"line",...sl("waterway"),minzoom:12,paint:{"line-color":p.water,"line-width":ZW([[12,.5],[18,4]])}},
-    {id:"building",type:"fill",...sl("building"),minzoom:14,paint:{"fill-color":p.bld,"fill-outline-color":p.bldLine,"fill-opacity":["interpolate",["linear"],["zoom"],14,0,15,1]}},
-    {id:"tunnel",type:"line",...sl("transportation"),minzoom:13,filter:["all",["==",["get","brunnel"],"tunnel"],isCls(["minor","service",...MAJ,...MOT])],
-      paint:{"line-color":p.cas,"line-width":ZW(W.minor),"line-dasharray":[1.5,1.5],"line-opacity":.7}},
-    {id:"rail",type:"line",...sl("transportation"),minzoom:12,filter:isCls(["rail"]),paint:{"line-color":p.rail,"line-width":ZW([[12,.6],[18,2.5]]),"line-dasharray":[3,2]}},
-    road("svc-cas",["service"],W.svc,p.cas,14,true),
-    road("minor-cas",["minor"],W.minor,p.cas,12,true),
-    road("major-cas",MAJ,W.major,p.majCas,8,true),
-    road("motor-cas",MOT,W.motor,p.motCas,6,true),
-    road("svc",["service"],W.svc,p.svc,14),
-    road("minor",["minor"],W.minor,p.minor,12),
-    road("major",MAJ,W.major,p.major,8),
-    road("motor",MOT,W.motor,p.motor,6),
-    {id:"oneway",type:"symbol",...sl("transportation"),minzoom:15,
-      filter:["all",["==",["get","oneway"],1],isCls(["minor","service",...MAJ])],
-      layout:{"symbol-placement":"line","symbol-spacing":80,"icon-image":"oneway","icon-size":["interpolate",["linear"],["zoom"],15,.55,18,.8],"icon-rotation-alignment":"map","icon-allow-overlap":true,"icon-ignore-placement":true}},
-    {id:"oneway-rev",type:"symbol",...sl("transportation"),minzoom:15,
-      filter:["all",["==",["get","oneway"],-1],isCls(["minor","service",...MAJ])],
-      layout:{"symbol-placement":"line","symbol-spacing":80,"icon-image":"oneway","icon-rotate":180,"icon-size":["interpolate",["linear"],["zoom"],15,.55,18,.8],"icon-rotation-alignment":"map","icon-allow-overlap":true,"icon-ignore-placement":true}}
+    {id:"waterway",type:"line",...sl("waterway"),minzoom:11,paint:{"line-color":p.water,"line-width":ZW([[11,.6],[18,5]])}},
+    {id:"building",type:"fill",...sl("building"),minzoom:14,paint:{"fill-color":p.bld,"fill-outline-color":p.bldLine,"fill-opacity":["interpolate",["linear"],["zoom"],14,.3,15.5,1]}},
+    {id:"tunnel",type:"line",...sl("transportation"),minzoom:12,filter:["all",["==",["get","brunnel"],"tunnel"],isCls(["minor","service","tertiary","secondary","primary","trunk","motorway"])],
+      paint:{"line-color":p.terCas,"line-width":ZW(W.minor),"line-dasharray":[1.4,1.2],"line-opacity":.6}},
+    {id:"rail",type:"line",...sl("transportation"),minzoom:11,filter:isCls(["rail"]),paint:{"line-color":p.rail,"line-width":ZW([[11,.8],[18,3]]),"line-dasharray":[3,2]}},
+    road("ped-cas",PED,W.ped,p.pedCas,14,true),
+    road("svc-cas",R.svc,W.svc,p.svcCas,13,true),
+    road("minor-cas",R.minor,W.minor,p.minCas,11,true),
+    road("ter-cas",R.ter,W.ter,p.terCas,10,true),
+    road("sec-cas",R.sec,W.major,p.secCas,8,true),
+    road("pri-cas",R.pri,W.major,p.priCas,7,true),
+    road("trunk-cas",R.trunk,W.motor,p.trunkCas,6,true),
+    road("motor-cas",R.motor,W.motor,p.motCas,5,true),
+    road("ped",PED,W.ped,p.ped,14),
+    road("svc",R.svc,W.svc,p.svc,13),
+    road("minor",R.minor,W.minor,p.minor,11),
+    road("ter",R.ter,W.ter,p.ter,10),
+    road("sec",R.sec,W.major,p.sec,8),
+    road("pri",R.pri,W.major,p.pri,7),
+    road("trunk",R.trunk,W.motor,p.trunk,6),
+    road("motor",R.motor,W.motor,p.motor,5),
+    {id:"oneway",type:"symbol",...sl("transportation"),minzoom:14,
+      filter:["all",["==",["get","oneway"],1],isCls(["minor","service","tertiary","secondary","primary","trunk"])],
+      layout:{"symbol-placement":"line","symbol-spacing":["interpolate",["linear"],["zoom"],14,60,18,110],"icon-image":"oneway",
+        "icon-size":["interpolate",["linear"],["zoom"],14,.5,16,.7,18,.95],"icon-rotation-alignment":"map","icon-allow-overlap":true,"icon-ignore-placement":true}},
+    {id:"oneway-rev",type:"symbol",...sl("transportation"),minzoom:14,
+      filter:["all",["==",["get","oneway"],-1],isCls(["minor","service","tertiary","secondary","primary","trunk"])],
+      layout:{"symbol-placement":"line","symbol-spacing":["interpolate",["linear"],["zoom"],14,60,18,110],"icon-image":"oneway","icon-rotate":180,
+        "icon-size":["interpolate",["linear"],["zoom"],14,.5,16,.7,18,.95],"icon-rotation-alignment":"map","icon-allow-overlap":true,"icon-ignore-placement":true}},
+    {id:"parking",type:"symbol",...sl("poi"),minzoom:15,filter:["==",["get","class"],"parking"],
+      layout:{"text-field":"P","text-font":["Noto Sans Bold"],"text-size":["interpolate",["linear"],["zoom"],15,11,18,15]},
+      paint:{"text-color":"#FFFFFF","text-halo-color":"#2D6FD2","text-halo-width":4}},
+    {id:"housenum",type:"symbol",...sl("housenumber"),minzoom:17.5,
+      layout:{"text-field":["get","housenumber"],"text-font":["Noto Sans Regular"],"text-size":10},paint:{"text-color":p.house,"text-halo-color":p.bg,"text-halo-width":1}}
   ];
   if(SET.mapLabels)layers.push(
-    {id:"road-label",type:"symbol",...sl("transportation_name"),minzoom:13,
+    {id:"road-label",type:"symbol",...sl("transportation_name"),minzoom:13.5,filter:["!",isCls(["path","track","rail"])],
       layout:{"symbol-placement":"line","text-field":["coalesce",["get","name"],["get","ref"]],"text-font":["Noto Sans Regular"],
-        "text-size":["interpolate",["linear"],["zoom"],13,10,18,13],"text-max-angle":30,"symbol-spacing":250},
-      paint:{"text-color":p.label,"text-halo-color":p.halo,"text-halo-width":1.4}},
-    {id:"road-ref",type:"symbol",...sl("transportation_name"),minzoom:8,maxzoom:15,filter:["all",["has","ref"],isCls(["motorway","trunk","primary"])],
-      layout:{"symbol-placement":"line","text-field":["get","ref"],"text-font":["Noto Sans Bold"],"text-size":10,"symbol-spacing":400},
-      paint:{"text-color":p.label,"text-halo-color":p.halo,"text-halo-width":1.6}});
-  layers.push({id:"place",type:"symbol",...sl("place"),filter:isCls(["city","town","village","suburb"]),
-    layout:{"text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":["match",["get","class"],"city",15,"town",13,11]},
-    paint:{"text-color":p.place,"text-halo-color":p.halo,"text-halo-width":1.6}});
+        "text-size":["interpolate",["linear"],["zoom"],13.5,10.5,16,12.5,18,15],"text-max-angle":30,"symbol-spacing":220},
+      paint:{"text-color":p.label,"text-halo-color":p.halo,"text-halo-width":1.6}},
+    {id:"road-ref",type:"symbol",...sl("transportation_name"),minzoom:8,maxzoom:15,filter:["all",["has","ref"],isCls(["motorway","trunk","primary","secondary"])],
+      layout:{"symbol-placement":"line","text-field":["get","ref"],"text-font":["Noto Sans Bold"],"text-size":10.5,"symbol-spacing":400},
+      paint:{"text-color":"#FFFFFF","text-halo-color":"#5B6B7F","text-halo-width":2.6}});
+  layers.push({id:"place",type:"symbol",...sl("place"),filter:isCls(["city","town","village","suburb","neighbourhood"]),
+    layout:{"text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":["match",["get","class"],"city",16,"town",14,"village",12.5,11]},
+    paint:{"text-color":p.place,"text-halo-color":p.halo,"text-halo-width":1.8}});
   return {version:8,glyphs:GLYPHS,sources:{ofm:{type:"vector",url:"https://tiles.openfreemap.org/planet",attribution:cfg.attr}},layers};
 }
 function arrowImg(color){
@@ -681,7 +699,7 @@ function arrowImg(color){
   const d=g.getImageData(0,0,W,H);return {width:W,height:H,data:new Uint8Array(d.data.buffer)};
 }
 function prepMap(map,cfg){
-  const pal=PAL[cfg.dark?"dark":"light"];
+  const pal=PAL.light;
   map.on("styleimagemissing",e=>{if(e.id==="oneway"&&!map.hasImage("oneway")){try{map.addImage("oneway",arrowImg(pal.arrow),{pixelRatio:2})}catch(_){}}});
 }
 function recBounds(rec){
@@ -709,7 +727,7 @@ function initMaps(root){
     const wrap=el.parentNode,fb=wrap.querySelector(".fallback"),note=wrap.querySelector(".rnote");
     const fallback=msg=>{el.hidden=true;fb.hidden=false;if(msg)note.textContent=msg};
     if(!window.maplibregl){fallback(NOMAP);return}
-    const cfg=mapCfg(),pal=PAL[cfg.dark?"dark":"light"];el.style.background=pal.bg;
+    const cfg=mapCfg(),pal=PAL.light;el.style.background=pal.bg;
     let map;
     try{map=new maplibregl.Map({container:el,style:buildStyle(cfg),bounds:recBounds(rec),fitBoundsOptions:{padding:36,maxZoom:17},
       attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false,maxPitch:0,cooperativeGestures:false})}
@@ -978,7 +996,7 @@ async function buildReport(rec){
   const txt=(s,x,size,style,color)=>{doc.setFont("helvetica",style||"normal");doc.setFontSize(size);doc.setTextColor(...(color||[38,38,38]));doc.text(s,x,y)};
   const para=(s,size,style,color,indent)=>{doc.setFont("helvetica",style||"normal");doc.setFontSize(size);const lines=doc.splitTextToSize(s,CW-(indent||0));
     const lh=size*.42;lines.forEach(l=>{need(lh);doc.setTextColor(...(color||[38,38,38]));doc.text(l,M+(indent||0),y);y+=lh})};
-  const h2=s=>{need(14);y+=4;txt(s,M,13,"bold");y+=2;doc.setDrawColor(214,214,214);doc.setLineWidth(.3);doc.line(M,y,PW-M,y);y+=6};
+  const h2=(s,keep)=>{need(14+(keep||12));y+=4;txt(s,M,13,"bold");y+=2;doc.setDrawColor(214,214,214);doc.setLineWidth(.3);doc.line(M,y,PW-M,y);y+=6};
   const dot=(lv,x,yy,rad)=>{doc.setFillColor(...hexRGB(LVCOL[lv]));doc.setDrawColor(38,38,38);doc.setLineWidth(.2);doc.circle(x,yy,rad||1.6,"FD")};
   // Cabecera
   txt("Symplo",M,15,"bold");const sw=doc.getTextWidth("Symplo ");txt("Tramo",M+sw,15,"normal",[107,107,107]);
@@ -1000,13 +1018,13 @@ async function buildReport(rec){
   let margin="";if(!r.no)margin=r.D===0?` Margen hasta el no apto: ${9-r.L} leves más, o una grave con ${Math.max(0,4-r.L)} leves como máximo.`:` Margen hasta el no apto: ${4-r.L} leves más y ninguna grave.`;
   para(r.reason+margin,10);y+=2;
   // Mapa
-  h2("Recorrido y faltas");
+  h2("Recorrido y faltas",rec.track&&rec.track.length||rec.faults.some(f=>f.pos)?CW*0.6+8:8);
   const img=await mapImage(rec);
   if(img){const mh=CW*0.6;need(mh+10);doc.addImage(img.url,"JPEG",M,y,CW,mh);doc.setDrawColor(214,214,214);doc.setLineWidth(.3);doc.rect(M,y,CW,mh);y+=mh+4;
     para((img.tiles?"":"Mapa de calles no disponible al generar el informe: se muestra solo el trazado. ")+"El círculo blanco es la salida. Los números corresponden a la tabla de faltas."+(img.attr?" Mapa "+img.attr+".":""),8,"normal",[107,107,107])}
   else para("Esta prueba no tiene datos de ubicación, así que no se puede dibujar el recorrido.",10,"normal",[107,107,107]);
   // Tabla de faltas
-  h2("Faltas anotadas");
+  h2("Faltas anotadas",rec.faults.length?18:8);
   if(!rec.faults.length)para("No se anotó ninguna falta en esta prueba.",10);
   else{
     const cols=[["#",8],["Min.",14],["Código",18],["Falta",62],["Nivel",24],["Nota",CW-126]];
@@ -1021,11 +1039,15 @@ async function buildReport(rec){
   }
   // Qué revisar
   if(rec.faults.length){
-    h2("Qué revisar y cómo mejorar");
     const order={E:0,D:1,L:2};const groups={};
     rec.faults.forEach(f=>{const k=f.code+"|"+f.lv;(groups[k]=groups[k]||{code:f.code,lv:f.lv,n:0}).n++});
-    Object.values(groups).sort((a,b)=>order[a.lv]-order[b.lv]||b.n-a.n).forEach(gp=>{
-      const it=INDEX[gp.code];need(22);dot(gp.lv,M+1.8,y-1.3,1.9);
+    const lh=9.5*.42,gh=gp=>{const it=INDEX[gp.code];doc.setFont("helvetica","normal");doc.setFontSize(9.5);
+      const n=(it.cr[gp.lv]?doc.splitTextToSize("Criterio: "+it.cr[gp.lv],CW-6).length:0)+(tipFor(gp.code)?doc.splitTextToSize("Cómo mejorar: "+tipFor(gp.code),CW-6).length:0);
+      return 9.6+n*lh+5};
+    const sorted=Object.values(groups).sort((a,b)=>order[a.lv]-order[b.lv]||b.n-a.n);
+    h2("Qué revisar y cómo mejorar",gh(sorted[0]));
+    sorted.forEach(gp=>{
+      const it=INDEX[gp.code];need(gh(gp));dot(gp.lv,M+1.8,y-1.3,1.9);
       txt(`${gp.code}  ${it.t}`,M+6,11,"bold");y+=4.6;
       txt(`${LVNAME[gp.lv]}${gp.n>1?` × ${gp.n}`:""}  ·  Apartado ${it.sec.n}, ${it.sec.t}`,M+6,9,"normal",[107,107,107]);y+=5;
       if(it.cr[gp.lv])para("Criterio: "+it.cr[gp.lv],9.5,"normal",[80,80,80],6);
@@ -1034,7 +1056,7 @@ async function buildReport(rec){
   // Evolución
   const upto=HIST.filter(x=>x.date<=rec.date).slice(-6);
   if(upto.length>=2){
-    h2("Evolución en las últimas prácticas");
+    h2("Evolución en las últimas prácticas",20);
     const cols=[["Fecha",40],["Duración",22],["Leves",18],["Graves",18],["Elim.",18],["Resultado",CW-116]];
     need(9);doc.setFillColor(242,242,242);doc.rect(M,y-4.5,CW,7,"F");let x=M+1.5;doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(38,38,38);cols.forEach(([c,w])=>{doc.text(c,x,y);x+=w});y+=6;
     upto.forEach(h=>{const e=evaluate(h.faults);need(6);x=M+1.5;doc.setFont("helvetica",h.id===rec.id?"bold":"normal");doc.setFontSize(9);
@@ -1047,7 +1069,7 @@ async function buildReport(rec){
     else para("Ningún código se repite entre estas prácticas: buena señal de que las correcciones se están integrando.",9.5);
   }
   // Plan
-  h2("Plan para la próxima práctica");
+  h2("Plan para la próxima práctica",16);
   const nm=c=>`${c} ${INDEX[c].t.toLowerCase()}`;
   const byLv=lv=>[...new Set(rec.faults.filter(f=>f.lv===lv).map(f=>f.code))];
   const cntAll={};HIST.forEach(h=>new Set(h.faults.map(f=>f.code)).forEach(c=>cntAll[c]=(cntAll[c]||0)+1));
@@ -1086,7 +1108,7 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 const OPTS={
   examMin:[[20,"20 min"],[25,"25 min"],[30,"30 min"],[35,"35 min"]],
   gpsDist:[[5,"Cada 5 m"],[10,"Cada 10 m"],[15,"Cada 15 m"],[30,"Cada 30 m"]],
-  mapStyle:[["auto","Conducción, según el tema"],["light","Conducción claro"],["dark","Conducción oscuro"],["roads","Carreteras en color"],["osm","Detallado (OpenStreetMap)"]],
+  mapStyle:[["osm","Detallado"],["light","Simplificado"],["roads","Interurbano"]],
   routeWidth:[[3,"Fino"],[4,"Medio"],[6,"Grueso"]],
   theme:[["auto","Según el dispositivo"],["light","Claro"],["dark","Oscuro"]]
 };
@@ -1110,8 +1132,8 @@ function renderSettings(){
   <h2>Ubicación y mapa</h2><div class="sgroup">
     ${SW("gps","Registrar ubicación y recorrido","Guarda la posición de cada falta y el trazado de la prueba.")}
     ${SL("gpsDist","Precisión del recorrido","Distancia mínima entre puntos guardados.")}
-    ${SL("mapStyle","Estilo del mapa","Los estilos de conducción muestran calles, nombres y sentidos de circulación, sin comercios ni puntos de interés.")}
-    ${SW("mapLabels","Nombres de calles","Sin nombres el mapa queda más limpio. No afecta al estilo detallado.")}
+    ${SL("mapStyle","Estilo del mapa","Detallado: mapa completo de OpenStreetMap. Simplificado: pensado para ciudad, con sentidos únicos, calles peatonales y aparcamientos, sin comercios. Interurbano: carreteras destacadas para trayectos entre poblaciones.")}
+    ${SW("mapLabels","Nombres de calles","Sin nombres el mapa queda más limpio. Solo afecta a los mapas simplificado e interurbano.")}
     ${SL("routeWidth","Grosor del recorrido","")}
   </div>
   <h2>Apariencia</h2><div class="sgroup">
