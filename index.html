@@ -601,19 +601,16 @@ function routeBlock(rec){
   return `<div class="route"><div class="lmap" data-rid="${rec.id}"></div><div class="fallback" hidden>${routeSvg(track,rec.faults)}</div><p class="rnote">Recorrido aproximado. El círculo blanco es la salida.</p></div>`;
 }
 const LVCOL={L:"#F5A43A",D:"#EE6F6F",E:"#000000"};
-const _tp=["FR0IRF9YFRdAAlo=","EkpcFVlWS0JDUFoL","EBtcL1gLHh4tUDIJ"];
-function _tq(){try{const s="symplo-tramo",b=atob(_tp.slice().reverse().join(""));let o="";for(let i=0;i<b.length;i++)o+=String.fromCharCode(b.charCodeAt(i)^s.charCodeAt(i%s.length));return o}catch(e){return ""}}
 
 const isDark=()=>SET.theme==="dark"||(SET.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);
 const OSM_A='© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
 const OFM_A='<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> '+OSM_A;
-const CARTO_A=OSM_A+' © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>';
 const GLYPHS="https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
 const OSM_RASTER="https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 function mapCfg(){
   const st=SET.mapStyle;
-  if(st==="light")return {kind:"vector",dark:false,attr:OFM_A,raster:OSM_RASTER};
-  if(st==="roads"&&_tq())return {kind:"raster",dark:false,attr:CARTO_A,vivid:true,raster:`https://basemaps.cartocdn.com/rastertiles/${SET.mapLabels?"voyager":"voyager_nolabels"}/{z}/{x}/{y}.png?key=${encodeURIComponent(_tq())}`};
+  if(st==="light")return {kind:"vector",variant:"urban",dark:false,attr:OFM_A,raster:OSM_RASTER};
+  if(st==="roads")return {kind:"vector",variant:"inter",dark:false,attr:OFM_A,raster:OSM_RASTER};
   return {kind:"raster",dark:false,attr:OSM_A,raster:OSM_RASTER};
 }
 const PAL={light:{
@@ -627,10 +624,15 @@ const isCls=list=>["match",["get","class"],list,true,false];
 function buildStyle(cfg){
   if(cfg.kind==="raster")return {version:8,glyphs:GLYPHS,sources:{base:{type:"raster",tiles:[cfg.raster],tileSize:256,maxzoom:19,attribution:cfg.attr}},
     layers:[{id:"base",type:"raster",source:"base",paint:cfg.vivid?{"raster-saturation":0.45,"raster-contrast":0.12}:{}}]};
-  const p=PAL.light,src="ofm",sl=l=>({source:src,"source-layer":l});
+  const p=PAL.light,src="ofm",sl=l=>({source:src,"source-layer":l}),IN=cfg.variant==="inter";
   const noTun=["!=",["get","brunnel"],"tunnel"];
-  const W={svc:[[13,.6],[15,2.5],[17,6],[19,14]],minor:[[11,.5],[13,1.8],[15,5],[17,11],[19,26]],ter:[[10,.8],[13,2.6],[15,6],[17,13],[19,28]],
+  const W=IN?{svc:[[15,.8],[17,4],[19,10]],minor:[[13,.5],[15,2.5],[17,7],[19,18]],ter:[[9,.7],[12,2],[14,4],[16,8],[18,18]],
+      major:[[6,1],[9,2.6],[12,4.5],[14,7.5],[16,13],[18,26]],motor:[[5,1.4],[8,3],[11,5.5],[14,9.5],[16,16],[18,30]],ped:[[15,1],[17,4]]}
+    :{svc:[[13,.6],[15,2.5],[17,6],[19,14]],minor:[[11,.5],[13,1.8],[15,5],[17,11],[19,26]],ter:[[10,.8],[13,2.6],[15,6],[17,13],[19,28]],
     major:[[7,.7],[11,2],[13,3.6],[15,7.5],[17,15],[19,32]],motor:[[5,.8],[9,2],[13,4.5],[15,9],[17,17],[19,34]],ped:[[14,1],[16,3.5],[18,8]]};
+  const Z=IN?{ped:15,svc:15,minor:13,ter:9,sec:7,pri:6,trunk:5,motor:4,bld:15.5,arrow:15,name:14,ref:6}
+    :{ped:14,svc:13,minor:11,ter:10,sec:8,pri:7,trunk:6,motor:5,bld:14,arrow:14,name:13.5,ref:8};
+  const mc=IN?{minor:"#FFFFFF",minCas:"#CFCFCF",svcCas:"#D8D8D8",resid:"#E4DED6"}:{minor:p.minor,minCas:p.minCas,svcCas:p.svcCas,resid:p.resid};
   const cas=s=>s.map(([z,w])=>[z,w+(z>=13?2.2:.9)]);
   const road=(id,filter,w,color,minz,casing)=>({id,type:"line",...sl("transportation"),minzoom:minz,filter:["all",filter,noTun],
     layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":color,"line-width":ZW(casing?cas(w):w)}});
@@ -638,37 +640,37 @@ function buildStyle(cfg){
   const R={svc:isCls(["service"]),minor:isCls(["minor"]),ter:isCls(["tertiary"]),sec:isCls(["secondary"]),pri:isCls(["primary"]),trunk:isCls(["trunk"]),motor:isCls(["motorway"])};
   const layers=[
     {id:"bg",type:"background",paint:{"background-color":p.bg}},
-    {id:"resid",type:"fill",...sl("landuse"),filter:isCls(["residential","suburb","neighbourhood"]),paint:{"fill-color":p.resid}},
+    {id:"resid",type:"fill",...sl("landuse"),filter:isCls(["residential","suburb","neighbourhood","industrial","commercial","retail"]),paint:{"fill-color":mc.resid}},
     {id:"wood",type:"fill",...sl("landcover"),filter:isCls(["wood"]),paint:{"fill-color":p.wood}},
     {id:"grass",type:"fill",...sl("landcover"),filter:isCls(["grass"]),paint:{"fill-color":p.park}},
     {id:"park",type:"fill",...sl("park"),paint:{"fill-color":p.park}},
     {id:"water",type:"fill",...sl("water"),paint:{"fill-color":p.water}},
     {id:"waterway",type:"line",...sl("waterway"),minzoom:11,paint:{"line-color":p.water,"line-width":ZW([[11,.6],[18,5]])}},
-    {id:"building",type:"fill",...sl("building"),minzoom:14,paint:{"fill-color":p.bld,"fill-outline-color":p.bldLine,"fill-opacity":["interpolate",["linear"],["zoom"],14,.3,15.5,1]}},
+    {id:"building",type:"fill",...sl("building"),minzoom:Z.bld,paint:{"fill-color":p.bld,"fill-outline-color":p.bldLine,"fill-opacity":["interpolate",["linear"],["zoom"],14,.3,15.5,1]}},
     {id:"tunnel",type:"line",...sl("transportation"),minzoom:12,filter:["all",["==",["get","brunnel"],"tunnel"],isCls(["minor","service","tertiary","secondary","primary","trunk","motorway"])],
       paint:{"line-color":p.terCas,"line-width":ZW(W.minor),"line-dasharray":[1.4,1.2],"line-opacity":.6}},
     {id:"rail",type:"line",...sl("transportation"),minzoom:11,filter:isCls(["rail"]),paint:{"line-color":p.rail,"line-width":ZW([[11,.8],[18,3]]),"line-dasharray":[3,2]}},
-    road("ped-cas",PED,W.ped,p.pedCas,14,true),
-    road("svc-cas",R.svc,W.svc,p.svcCas,13,true),
-    road("minor-cas",R.minor,W.minor,p.minCas,11,true),
-    road("ter-cas",R.ter,W.ter,p.terCas,10,true),
-    road("sec-cas",R.sec,W.major,p.secCas,8,true),
-    road("pri-cas",R.pri,W.major,p.priCas,7,true),
-    road("trunk-cas",R.trunk,W.motor,p.trunkCas,6,true),
-    road("motor-cas",R.motor,W.motor,p.motCas,5,true),
-    road("ped",PED,W.ped,p.ped,14),
-    road("svc",R.svc,W.svc,p.svc,13),
-    road("minor",R.minor,W.minor,p.minor,11),
-    road("ter",R.ter,W.ter,p.ter,10),
-    road("sec",R.sec,W.major,p.sec,8),
-    road("pri",R.pri,W.major,p.pri,7),
-    road("trunk",R.trunk,W.motor,p.trunk,6),
-    road("motor",R.motor,W.motor,p.motor,5),
-    {id:"oneway",type:"symbol",...sl("transportation"),minzoom:14,
+    road("ped-cas",PED,W.ped,p.pedCas,Z.ped,true),
+    road("svc-cas",R.svc,W.svc,mc.svcCas,Z.svc,true),
+    road("minor-cas",R.minor,W.minor,mc.minCas,Z.minor,true),
+    road("ter-cas",R.ter,W.ter,p.terCas,Z.ter,true),
+    road("sec-cas",R.sec,W.major,p.secCas,Z.sec,true),
+    road("pri-cas",R.pri,W.major,p.priCas,Z.pri,true),
+    road("trunk-cas",R.trunk,W.motor,p.trunkCas,Z.trunk,true),
+    road("motor-cas",R.motor,W.motor,p.motCas,Z.motor,true),
+    road("ped",PED,W.ped,p.ped,Z.ped),
+    road("svc",R.svc,W.svc,p.svc,Z.svc),
+    road("minor",R.minor,W.minor,mc.minor,Z.minor),
+    road("ter",R.ter,W.ter,p.ter,Z.ter),
+    road("sec",R.sec,W.major,p.sec,Z.sec),
+    road("pri",R.pri,W.major,p.pri,Z.pri),
+    road("trunk",R.trunk,W.motor,p.trunk,Z.trunk),
+    road("motor",R.motor,W.motor,p.motor,Z.motor),
+    {id:"oneway",type:"symbol",...sl("transportation"),minzoom:Z.arrow,
       filter:["all",["==",["get","oneway"],1],isCls(["minor","service","tertiary","secondary","primary","trunk"])],
       layout:{"symbol-placement":"line","symbol-spacing":["interpolate",["linear"],["zoom"],14,60,18,110],"icon-image":"oneway",
         "icon-size":["interpolate",["linear"],["zoom"],14,.5,16,.7,18,.95],"icon-rotation-alignment":"map","icon-allow-overlap":true,"icon-ignore-placement":true}},
-    {id:"oneway-rev",type:"symbol",...sl("transportation"),minzoom:14,
+    {id:"oneway-rev",type:"symbol",...sl("transportation"),minzoom:Z.arrow,
       filter:["all",["==",["get","oneway"],-1],isCls(["minor","service","tertiary","secondary","primary","trunk"])],
       layout:{"symbol-placement":"line","symbol-spacing":["interpolate",["linear"],["zoom"],14,60,18,110],"icon-image":"oneway","icon-rotate":180,
         "icon-size":["interpolate",["linear"],["zoom"],14,.5,16,.7,18,.95],"icon-rotation-alignment":"map","icon-allow-overlap":true,"icon-ignore-placement":true}},
@@ -679,15 +681,16 @@ function buildStyle(cfg){
       layout:{"text-field":["get","housenumber"],"text-font":["Noto Sans Regular"],"text-size":10},paint:{"text-color":p.house,"text-halo-color":p.bg,"text-halo-width":1}}
   ];
   if(SET.mapLabels)layers.push(
-    {id:"road-label",type:"symbol",...sl("transportation_name"),minzoom:13.5,filter:["!",isCls(["path","track","rail"])],
+    {id:"road-label",type:"symbol",...sl("transportation_name"),minzoom:Z.name,filter:["!",isCls(["path","track","rail"])],
       layout:{"symbol-placement":"line","text-field":["coalesce",["get","name"],["get","ref"]],"text-font":["Noto Sans Regular"],
         "text-size":["interpolate",["linear"],["zoom"],13.5,10.5,16,12.5,18,15],"text-max-angle":30,"symbol-spacing":220},
       paint:{"text-color":p.label,"text-halo-color":p.halo,"text-halo-width":1.6}},
-    {id:"road-ref",type:"symbol",...sl("transportation_name"),minzoom:8,maxzoom:15,filter:["all",["has","ref"],isCls(["motorway","trunk","primary","secondary"])],
-      layout:{"symbol-placement":"line","text-field":["get","ref"],"text-font":["Noto Sans Bold"],"text-size":10.5,"symbol-spacing":400},
-      paint:{"text-color":"#FFFFFF","text-halo-color":"#5B6B7F","text-halo-width":2.6}});
+    {id:"road-ref",type:"symbol",...sl("transportation_name"),minzoom:Z.ref,maxzoom:IN?17:15,filter:["all",["has","ref"],isCls(["motorway","trunk","primary","secondary"])],
+      layout:{"symbol-placement":"line","text-field":["get","ref"],"text-font":["Noto Sans Bold"],"text-size":IN?["interpolate",["linear"],["zoom"],6,10,12,12.5]:10.5,
+        "symbol-spacing":IN?300:400,"text-rotation-alignment":"viewport","text-keep-upright":true},
+      paint:{"text-color":"#FFFFFF","text-halo-color":IN?["match",["get","class"],"motorway","#2456B0",["trunk","primary"],"#C2332B","#B07A10"]:"#5B6B7F","text-halo-width":IN?3:2.6}});
   layers.push({id:"place",type:"symbol",...sl("place"),filter:isCls(["city","town","village","suburb","neighbourhood"]),
-    layout:{"text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":["match",["get","class"],"city",16,"town",14,"village",12.5,11]},
+    layout:{"text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":IN?["match",["get","class"],"city",18,"town",15.5,"village",13.5,11]:["match",["get","class"],"city",16,"town",14,"village",12.5,11]},
     paint:{"text-color":p.place,"text-halo-color":p.halo,"text-halo-width":1.8}});
   return {version:8,glyphs:GLYPHS,sources:{ofm:{type:"vector",url:"https://tiles.openfreemap.org/planet",attribution:cfg.attr}},layers};
 }
@@ -1132,7 +1135,7 @@ function renderSettings(){
   <h2>Ubicación y mapa</h2><div class="sgroup">
     ${SW("gps","Registrar ubicación y recorrido","Guarda la posición de cada falta y el trazado de la prueba.")}
     ${SL("gpsDist","Precisión del recorrido","Distancia mínima entre puntos guardados.")}
-    ${SL("mapStyle","Estilo del mapa","Detallado: mapa completo de OpenStreetMap. Simplificado: pensado para ciudad, con sentidos únicos, calles peatonales y aparcamientos, sin comercios. Interurbano: carreteras destacadas para trayectos entre poblaciones.")}
+    ${SL("mapStyle","Estilo del mapa","Detallado: mapa completo de OpenStreetMap. Simplificado: pensado para ciudad, con sentidos únicos, calles peatonales y aparcamientos, sin comercios. Interurbano: carreteras anchas y en color, con su número (N-340, C-32) y los pueblos bien visibles.")}
     ${SW("mapLabels","Nombres de calles","Sin nombres el mapa queda más limpio. Solo afecta a los mapas simplificado e interurbano.")}
     ${SL("routeWidth","Grosor del recorrido","")}
   </div>
