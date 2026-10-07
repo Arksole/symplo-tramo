@@ -147,6 +147,7 @@ details[open] .chev{transform:rotate(225deg)}
 .reason{padding:11px 16px;border-top:1px solid var(--line);font-size:15px}
 .meta{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;padding:9px 16px;background:var(--paper);border-bottom:1px solid var(--line)}
 .route{border-top:1px solid var(--line);padding:10px 12px 12px}
+.rpdf{border-top:1px solid var(--line);padding:12px;display:grid}
 .route .fallback svg{display:block;width:100%;height:auto;background:#ECECEC;border-radius:4px}
 .attrc{display:flex;align-items:center;gap:4px;margin:0 6px 6px 0!important;font:11px/1.3 "Public Sans",system-ui,sans-serif;color:#333;max-width:calc(100% - 60px)}
 .attrc .attr-i{flex:none;width:22px;height:22px;border-radius:50%;border:none;background:rgba(255,255,255,.85);color:#333;font:italic 700 13px/22px Georgia,serif;padding:0;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
@@ -654,6 +655,7 @@ function resultCard(rec){
     <div class="rrow"><span class="dot E"></span><span>Eliminatorias</span><span class="codes">${codesOf(rec.faults,"E")}</span></div>
     <div class="reason">${r.reason}</div>
     ${routeBlock(rec)}
+    <div class="rpdf"><button class="sbtn primary pdfbtn" type="button" data-rid="${rec.id}">Generar informe PDF</button></div>
   </div>`;
 }
 function faultRow(f,editable){
@@ -685,7 +687,7 @@ function renderHistory(){
     c.innerHTML=`<header><strong>${new Date(x.date).toLocaleString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</strong><span class="tag ${r.no?"no":""}">${r.no?"No apto":"Apto"}</span></header>
       <p>${r.L} leves, ${r.D} graves y ${r.E} eliminatorias en ${fmt(x.ms)}.</p>
       <p>${x.faults.length?x.faults.map(f=>f.code+" ("+LVSHORT[f.lv]+")").join(", "):"Sin faltas"}</p>
-      <div class="hact"><button class="linkbtn view">Ver hoja de resultado</button><button class="linkbtn delh">Eliminar</button></div>
+      <div class="hact"><button class="linkbtn view">Ver hoja de resultado</button><button class="linkbtn pdfbtn" data-rid="${x.id}">Informe PDF</button><button class="linkbtn delh">Eliminar</button></div>
       <div class="confirm" hidden><span>¿Eliminar esta simulación?</span><button class="yes">Eliminar</button><button class="no">Cancelar</button></div>
       <div class="hres"></div>`;
     const v=c.querySelector(".view"),box=c.querySelector(".hres"),cf=c.querySelector(".confirm");
@@ -787,6 +789,196 @@ $("importFile").addEventListener("change",async e=>{
   try{const n=importData(JSON.parse(await f.text()));toast(n?`Importadas ${n} simulaciones`:"No había simulaciones nuevas");renderAll()}
   catch(err){toast(err.message||"No se pudo leer el archivo")}
 });
+
+/* Informe PDF */
+const TIPS_SEC={
+ "1":"Haz la revisión siempre en el mismo orden (luces, neumáticos, niveles, mandos) y nómbrala en voz alta.",
+ "2":"Ajusta asiento, retrovisores y cinturón en el mismo orden antes de arrancar, aunque tengas prisa.",
+ "3":"Antes de salir: espejo interior, exterior y giro de cabeza al ángulo muerto. Intermitente con antelación y salida decidida cuando el hueco sea claro.",
+ "4":"Mantén 2 o 3 segundos con el vehículo de delante, mira el velocímetro cada vez que cambie el límite y adapta la velocidad a peatones y visibilidad.",
+ "5":"Usa siempre la misma secuencia: espejo, intermitente, ángulo muerto y desplazamiento progresivo.",
+ "6":"Adelanta solo con visibilidad amplia y de forma decidida. Vuelve a tu carril cuando veas el vehículo adelantado en el espejo interior.",
+ "7":"Llega a cada cruce despacio y mirando, decide antes de la línea y no reanudes la marcha sin comprobar ambos lados.",
+ "8":"Elige un lugar amplio y permitido y comprueba el tráfico en ambos sentidos antes de cada movimiento.",
+ "9":"Elige un hueco claramente mayor que el coche, usa referencias fijas y corrige con una maniobra más antes de dejarlo mal colocado.",
+ "10":"Al terminar: freno de mano, marcha según la pendiente, motor apagado y espejo antes de abrir la puerta.",
+ "11":"Lee la señalización con antelación, sobre todo marcas viales y flechas de carril. Ante cada línea transversal, decide antes de llegar.",
+ "12":"Revisa las luces al entrar en túneles o con poca visibilidad y alterna cortas y largas según el tráfico.",
+ "13":"Practica arranques y paradas hasta automatizarlos: suelta el embrague hasta notar que el coche tira, acelera suave y frena antes de embragar.",
+ "14":"Localiza limpiaparabrisas, desempañado y claxon antes de salir para no buscarlos en marcha.",
+ "15":"Ante cualquier duda, reduce la velocidad y aumenta el margen. Si no entiendes una indicación, pide que te la repitan."
+};
+const TIPS_CODE={
+ "11.5.2":"En cada paso de peatones baja la velocidad y mira las dos aceras. Si alguien cruza o va a cruzar, detente antes de la franja. Si un coche aparcado tapa la visión, entra como si hubiera alguien.",
+ "7.5":"Ante un stop o un ceda el paso, llega a una velocidad que te permita parar del todo antes de la línea. Si no ves, detente y avanza despacio hasta ganar visibilidad.",
+ "7.2":"Pon el intermitente antes de empezar a frenar para el giro y mantenlo hasta completarlo. En rotondas, intermitente derecho antes de tu salida.",
+ "7.4":"Reduce la velocidad antes de llegar al cruce, no dentro de él.",
+ "7.6":"Cuando el hueco sea claro, sal con decisión: dudar también obstaculiza.",
+ "5.1":"Espejo, intermitente y giro de cabeza al ángulo muerto antes de cada cambio de carril o al apartarte de un obstáculo.",
+ "3.1":"Gira la cabeza al ángulo muerto antes de incorporarte: el espejo no basta.",
+ "13.2.2":"Al arrancar, sube el embrague hasta notar que el coche tira y acelera un poco antes de soltarlo del todo, sobre todo en cuestas y tras los stops.",
+ "13.2.1":"Frena primero con la marcha metida y pisa el embrague justo antes de que el motor tiemble.",
+ "13.1.5":"Elige la marcha según la velocidad: en calles de 30, segunda larga o tercera baja.",
+ "4.3":"Deja al menos 1,5 m a ciclistas y peatones. Si no cabe, espera detrás.",
+ "4.5":"Mira el velocímetro cada vez que cambie la señal de límite y al entrar en poblado.",
+ "4.6":"Anticipa: un coche parado, un balón o un paso tapado son señales para bajar la velocidad antes de llegar.",
+ "11.3":"Ante un ámbar fijo, detente si puedes hacerlo con seguridad.",
+ "11.4":"Identifica cada señal de prioridad con antelación. En un stop, la parada es completa siempre.",
+ "9.4":"Usa referencias fijas practicadas y corrige con una maniobra más antes de dejarlo sobresaliendo."
+};
+const tipFor=c=>TIPS_CODE[c]||TIPS_SEC[INDEX[c].sec.n]||"";
+function loadJsPDF(){return new Promise((res,rej)=>{
+  if(window.jspdf&&window.jspdf.jsPDF)return res(window.jspdf.jsPDF);
+  const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+  s.onload=()=>window.jspdf?res(window.jspdf.jsPDF):rej(new Error("No se pudo cargar el generador de PDF"));
+  s.onerror=()=>rej(new Error("No se pudo cargar el generador de PDF"));document.head.appendChild(s)})}
+function lonToX(lon,z){return (lon+180)/360*256*2**z}
+function latToY(lat,z){const r=lat*Math.PI/180;return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*256*2**z}
+function loadImg(url){return new Promise(res=>{const i=new Image();i.crossOrigin="anonymous";let done=false;
+  const fin=v=>{if(!done){done=true;res(v)}};i.onload=()=>fin(i);i.onerror=()=>fin(null);setTimeout(()=>fin(null),8000);i.src=url})}
+async function mapImage(rec){
+  const track=rec.track||[],fp=rec.faults.map((f,i)=>({f,i})).filter(o=>o.f.pos);
+  const pts=[...track,...fp.map(o=>o.f.pos)];if(!pts.length)return null;
+  const W=1200,H=720,pad=70;let z=18,minX,maxX,minY,maxY;
+  for(;z>=3;z--){minX=Math.min(...pts.map(p=>lonToX(p.lon,z)));maxX=Math.max(...pts.map(p=>lonToX(p.lon,z)));
+    minY=Math.min(...pts.map(p=>latToY(p.lat,z)));maxY=Math.max(...pts.map(p=>latToY(p.lat,z)));
+    if(maxX-minX<=W-2*pad&&maxY-minY<=H-2*pad)break}
+  const ox=(minX+maxX)/2-W/2,oy=(minY+maxY)/2-H/2;
+  const tc=tileCfg(),dark=tc.dark;
+  const draw=async withTiles=>{
+    const cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");
+    g.fillStyle=dark?"#202020":"#ECECEC";g.fillRect(0,0,W,H);
+    if(withTiles){
+      const jobs=[];const n=2**z;
+      for(let tx=Math.floor(ox/256);tx<=Math.floor((ox+W)/256);tx++)for(let ty=Math.floor(oy/256);ty<=Math.floor((oy+H)/256);ty++){
+        if(ty<0||ty>=n)continue;const wx=((tx%n)+n)%n;
+        const url=tc.url.replace("{s}","a").replace("{r}","").replace("{z}",z).replace("{x}",wx).replace("{y}",ty);
+        jobs.push(loadImg(url).then(img=>{if(img)g.drawImage(img,tx*256-ox,ty*256-oy,256,256)}))}
+      await Promise.all(jobs);
+    }
+    const P=p=>[lonToX(p.lon,z)-ox,latToY(p.lat,z)-oy];const ink=dark?"#F2F2F2":"#262626";
+    if(track.length>1){g.strokeStyle=ink;g.globalAlpha=.85;g.lineWidth=Math.max(4,SET.routeWidth*1.6);g.lineJoin="round";g.lineCap="round";
+      g.beginPath();track.forEach((p,i)=>{const [x,y]=P(p);i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();g.globalAlpha=1}
+    if(track.length){const [x,y]=P(track[0]);g.fillStyle="#FFFFFF";g.strokeStyle="#262626";g.lineWidth=3;g.beginPath();g.arc(x,y,11,0,7);g.fill();g.stroke()}
+    fp.forEach(o=>{const [x,y]=P(o.f.pos);g.fillStyle=LVCOL[o.f.lv];g.strokeStyle=dark?"#F2F2F2":"#262626";g.lineWidth=2.5;
+      g.beginPath();g.arc(x,y,17,0,7);g.fill();g.stroke();
+      g.fillStyle=o.f.lv==="E"?"#FFFFFF":"#1A1A1A";g.font="bold 18px Helvetica, Arial, sans-serif";g.textAlign="center";g.textBaseline="middle";g.fillText(String(o.i+1),x,y+1)});
+    return cv.toDataURL("image/jpeg",.86);
+  };
+  let tiles=true;try{return {url:await draw(true),tiles}}catch(e){tiles=false;try{return {url:await draw(false),tiles}}catch(e2){return null}}
+}
+function hexRGB(h){h=h.replace("#","");return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
+async function buildReport(rec){
+  const jsPDF=await loadJsPDF();
+  const doc=new jsPDF({unit:"mm",format:"a4"});const PW=210,PH=297,M=16,CW=PW-2*M;let y=M;
+  const r=evaluate(rec.faults),d=new Date(rec.date);
+  const need=h=>{if(y+h>PH-18){doc.addPage();y=M}};
+  const txt=(s,x,size,style,color)=>{doc.setFont("helvetica",style||"normal");doc.setFontSize(size);doc.setTextColor(...(color||[38,38,38]));doc.text(s,x,y)};
+  const para=(s,size,style,color,indent)=>{doc.setFont("helvetica",style||"normal");doc.setFontSize(size);const lines=doc.splitTextToSize(s,CW-(indent||0));
+    const lh=size*.42;lines.forEach(l=>{need(lh);doc.setTextColor(...(color||[38,38,38]));doc.text(l,M+(indent||0),y);y+=lh})};
+  const h2=s=>{need(14);y+=4;txt(s,M,13,"bold");y+=2;doc.setDrawColor(214,214,214);doc.setLineWidth(.3);doc.line(M,y,PW-M,y);y+=6};
+  const dot=(lv,x,yy,rad)=>{doc.setFillColor(...hexRGB(LVCOL[lv]));doc.setDrawColor(38,38,38);doc.setLineWidth(.2);doc.circle(x,yy,rad||1.6,"FD")};
+  // Cabecera
+  txt("Symplo",M,15,"bold");const sw=doc.getTextWidth("Symplo ");txt("Tramo",M+sw,15,"normal",[107,107,107]);
+  doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(107,107,107);doc.text("Informe de práctica · Permiso B, circulación",PW-M,y,{align:"right"});
+  y+=4;doc.setDrawColor(38,38,38);doc.setLineWidth(.5);doc.line(M,y,PW-M,y);y+=9;
+  const fecha=d.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  txt(fecha.charAt(0).toUpperCase()+fecha.slice(1),M,16,"bold");y+=6;
+  txt(`Inicio ${d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}  ·  Duración ${fmt(rec.ms)}  ·  ${rec.faults.length} ${rec.faults.length===1?"falta anotada":"faltas anotadas"}`,M,10,"normal",[107,107,107]);y+=8;
+  // Resultado
+  const bh=30;doc.setLineWidth(.6);doc.setDrawColor(38,38,38);
+  if(r.no){doc.setFillColor(0,0,0);doc.rect(M,y,62,bh,"FD")}else{doc.setFillColor(255,255,255);doc.rect(M,y,62,bh,"FD")}
+  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...(r.no?[255,255,255]:[107,107,107]));doc.text("Resultado de la simulación",M+31,y+9,{align:"center"});
+  doc.setFont("helvetica","bold");doc.setFontSize(22);doc.setTextColor(...(r.no?[255,255,255]:[0,0,0]));doc.text(r.no?"NO APTO":"APTO",M+31,y+21,{align:"center"});
+  const cx=M+70;[["L","Leves",r.L],["D","Graves",r.D],["E","Eliminatorias",r.E]].forEach(([lv,lab,n],i)=>{const yy=y+7+i*8;dot(lv,cx+2,yy-1.2,1.9);
+    doc.setFont("helvetica","normal");doc.setFontSize(11);doc.setTextColor(38,38,38);doc.text(lab,cx+7,yy);doc.setFont("helvetica","bold");doc.text(String(n),cx+42,yy,{align:"right"});
+    const codes=rec.faults.filter(f=>f.lv===lv).map(f=>f.code).join(" - ");doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(107,107,107);
+    doc.text(doc.splitTextToSize(codes||"",PW-M-(cx+48))[0]||"",cx+48,yy)});
+  y+=bh+6;
+  let margin="";if(!r.no)margin=r.D===0?` Margen hasta el no apto: ${9-r.L} leves más, o una grave con ${Math.max(0,4-r.L)} leves como máximo.`:` Margen hasta el no apto: ${4-r.L} leves más y ninguna grave.`;
+  para(r.reason+margin,10);y+=2;
+  // Mapa
+  h2("Recorrido y faltas");
+  const img=await mapImage(rec);
+  if(img){const mh=CW*0.6;need(mh+10);doc.addImage(img.url,"JPEG",M,y,CW,mh);doc.setDrawColor(214,214,214);doc.setLineWidth(.3);doc.rect(M,y,CW,mh);y+=mh+4;
+    para((img.tiles?"":"Mapa de calles no disponible al generar el informe: se muestra solo el trazado. ")+"El círculo blanco es la salida. Los números corresponden a la tabla de faltas. Mapa © OpenStreetMap"+(SET.mapStyle==="osm"?"":" © CARTO")+".",8,"normal",[107,107,107])}
+  else para("Esta prueba no tiene datos de ubicación, así que no se puede dibujar el recorrido.",10,"normal",[107,107,107]);
+  // Tabla de faltas
+  h2("Faltas anotadas");
+  if(!rec.faults.length)para("No se anotó ninguna falta en esta prueba.",10);
+  else{
+    const cols=[["#",8],["Min.",14],["Código",18],["Falta",62],["Nivel",24],["Nota",CW-126]];
+    const head=()=>{need(9);doc.setFillColor(242,242,242);doc.rect(M,y-4.5,CW,7,"F");let x=M+1.5;doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(38,38,38);
+      cols.forEach(([c,w])=>{doc.text(c,x,y);x+=w});y+=5};
+    head();
+    rec.faults.forEach((f,i)=>{doc.setFont("helvetica","normal");doc.setFontSize(9);
+      const cells=[String(i+1),fmt(f.t),f.code,INDEX[f.code].t,LVNAME[f.lv],f.note||"-"].map((s,k)=>doc.splitTextToSize(s,cols[k][1]-3));
+      const rh=Math.max(...cells.map(c=>c.length))*3.8+2.4;if(y+rh>PH-18){doc.addPage();y=M;head()}
+      let x=M+1.5;cells.forEach((c,k)=>{if(k===4){dot(f.lv,x+1.3,y-1.1,1.4);doc.setTextColor(38,38,38);doc.text(c,x+4,y)}else{doc.setTextColor(38,38,38);doc.text(c,x,y)}x+=cols[k][1]});
+      y+=rh-3.8;doc.setDrawColor(226,226,226);doc.setLineWidth(.2);doc.line(M,y,PW-M,y);y+=4.6});
+  }
+  // Qué revisar
+  if(rec.faults.length){
+    h2("Qué revisar y cómo mejorar");
+    const order={E:0,D:1,L:2};const groups={};
+    rec.faults.forEach(f=>{const k=f.code+"|"+f.lv;(groups[k]=groups[k]||{code:f.code,lv:f.lv,n:0}).n++});
+    Object.values(groups).sort((a,b)=>order[a.lv]-order[b.lv]||b.n-a.n).forEach(gp=>{
+      const it=INDEX[gp.code];need(22);dot(gp.lv,M+1.8,y-1.3,1.9);
+      txt(`${gp.code}  ${it.t}`,M+6,11,"bold");y+=4.6;
+      txt(`${LVNAME[gp.lv]}${gp.n>1?` × ${gp.n}`:""}  ·  Apartado ${it.sec.n}, ${it.sec.t}`,M+6,9,"normal",[107,107,107]);y+=5;
+      if(it.cr[gp.lv])para("Criterio: "+it.cr[gp.lv],9.5,"normal",[80,80,80],6);
+      const tip=tipFor(gp.code);if(tip){y+=.8;para("Cómo mejorar: "+tip,9.5,"normal",[38,38,38],6)}y+=4});
+  }
+  // Evolución
+  const upto=HIST.filter(x=>x.date<=rec.date).slice(-6);
+  if(upto.length>=2){
+    h2("Evolución en las últimas prácticas");
+    const cols=[["Fecha",40],["Duración",22],["Leves",18],["Graves",18],["Elim.",18],["Resultado",CW-116]];
+    need(9);doc.setFillColor(242,242,242);doc.rect(M,y-4.5,CW,7,"F");let x=M+1.5;doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(38,38,38);cols.forEach(([c,w])=>{doc.text(c,x,y);x+=w});y+=6;
+    upto.forEach(h=>{const e=evaluate(h.faults);need(6);x=M+1.5;doc.setFont("helvetica",h.id===rec.id?"bold":"normal");doc.setFontSize(9);
+      [new Date(h.date).toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"}),fmt(h.ms),String(e.L),String(e.D),String(e.E),e.no?"No apto":"Apto"].forEach((s,k)=>{doc.text(s,x,y);x+=cols[k][1]});
+      y+=2;doc.setDrawColor(226,226,226);doc.line(M,y,PW-M,y);y+=4});
+    const cnt={};upto.forEach(h=>new Set(h.faults.map(f=>f.code)).forEach(c=>cnt[c]=(cnt[c]||0)+1));
+    const rep=Object.entries(cnt).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]);
+    y+=2;
+    if(rep.length){para("Errores que se repiten:",10,"bold");rep.slice(0,6).forEach(([c,n])=>para(`${c}  ${INDEX[c].t}: en ${n} de ${upto.length} prácticas.`,9.5,"normal",[38,38,38],4))}
+    else para("Ningún código se repite entre estas prácticas: buena señal de que las correcciones se están integrando.",9.5);
+  }
+  // Plan
+  h2("Plan para la próxima práctica");
+  const nm=c=>`${c} ${INDEX[c].t.toLowerCase()}`;
+  const byLv=lv=>[...new Set(rec.faults.filter(f=>f.lv===lv).map(f=>f.code))];
+  const cntAll={};HIST.forEach(h=>new Set(h.faults.map(f=>f.code)).forEach(c=>cntAll[c]=(cntAll[c]||0)+1));
+  const plan=[];
+  if(byLv("E").length)plan.push(`Prioridad máxima: ${byLv("E").map(nm).join("; ")}. Una sola falta así suspende el examen; trabájala de forma aislada antes de volver a hacer recorridos completos.`);
+  if(byLv("D").length)plan.push(`Faltas graves: ${byLv("D").map(nm).join("; ")}. Dos graves bastan para el no apto; repite a propósito las situaciones donde aparecieron.`);
+  const recur=Object.entries(cntAll).filter(([c,n])=>n>=2&&rec.faults.some(f=>f.code===c)).map(([c])=>c);
+  if(recur.length)plan.push(`Errores que se repiten de una práctica a otra: ${recur.map(nm).join("; ")}. Practica la conducción comentada en voz alta en esas situaciones hasta que la corrección salga sola.`);
+  const lv=byLv("L").filter(c=>!recur.includes(c));
+  if(lv.length)plan.push(`Faltas leves a pulir: ${lv.map(nm).join("; ")}. Por separado no suspenden, pero suman: diez leves, o una grave y cinco leves, son no apto.`);
+  if(!plan.length)plan.push("Prueba sin faltas: mantén la rutina de observación y repite el recorrido en condiciones distintas (otra hora, lluvia, más tráfico).");
+  plan.push("Termina la próxima práctica con una simulación completa en silencio, con duración real, y compara el informe con este.");
+  plan.forEach((p,i)=>{need(10);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(38,38,38);doc.text(`${i+1}.`,M,y);para(p,10,"normal",[38,38,38],6);y+=2});
+  // Pie
+  const np=doc.getNumberOfPages();for(let i=1;i<=np;i++){doc.setPage(i);doc.setDrawColor(214,214,214);doc.setLineWidth(.3);doc.line(M,PH-12,PW-M,PH-12);
+    doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(140,140,140);
+    doc.text("Symplo Tramo · Informe no oficial basado en los criterios de calificación de la DGT",M,PH-8);doc.text(`Página ${i} de ${np}`,PW-M,PH-8,{align:"right"})}
+  return doc;
+}
+let pdfBusy=false;
+async function makeReport(id,btn){
+  if(pdfBusy)return;const rec=HIST.find(x=>x.id===id)||(LAST&&LAST.id===id?LAST:null);if(!rec){toast("No se encuentra la prueba");return}
+  pdfBusy=true;const old=btn?btn.textContent:"";if(btn){btn.disabled=true;btn.textContent="Generando informe…"}
+  try{
+    const doc=await buildReport(rec);const name=`symplo-tramo-informe-${new Date(rec.date).toISOString().slice(0,10)}.pdf`;
+    const blob=doc.output("blob");let shared=false;
+    try{const f=new File([blob],name,{type:"application/pdf"});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"Informe de práctica"});shared=true}}
+    catch(e){if(e&&e.name==="AbortError")shared=true}
+    if(!shared){const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast("Informe generado")}
+  }catch(e){toast(e.message||"No se pudo generar el informe")}
+  finally{pdfBusy=false;if(btn){btn.disabled=false;btn.textContent=old}}
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".pdfbtn");if(b){e.stopPropagation();makeReport(b.dataset.rid,b)}});
 
 /* Pantalla de ajustes */
 const OPTS={
