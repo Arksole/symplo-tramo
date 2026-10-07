@@ -51,7 +51,7 @@ svg.ic{width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke
 .ctl{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:0;width:40px;height:38px;display:grid;place-items:center}
 .ctl:disabled{opacity:.35;cursor:not-allowed}
 .tabs{display:flex;gap:4px}
-.tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;padding:8px 4px 9px;font-weight:600;color:var(--muted)}
+.tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;padding:8px 2px 9px;font-weight:600;color:var(--muted);font-size:15px}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
 
 main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
@@ -147,7 +147,8 @@ details[open] .chev{transform:rotate(225deg)}
 .reason{padding:11px 16px;border-top:1px solid var(--line);font-size:15px}
 .meta{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;padding:9px 16px;background:var(--paper);border-bottom:1px solid var(--line)}
 .route{border-top:1px solid var(--line);padding:10px 12px 12px}
-.route svg{display:block;width:100%;height:auto;background:#ECECEC;border-radius:4px}
+.route .fallback svg{display:block;width:100%;height:auto;background:#ECECEC;border-radius:4px}
+.lmap .leaflet-control-attribution{font-size:10px}
 .lmap{height:320px;border-radius:4px;overflow:hidden;background:#ECECEC;z-index:0}
 .lmap .leaflet-tooltip{font-family:"Public Sans",system-ui,sans-serif;font-weight:700;font-size:12px;padding:1px 5px;color:#262626}
 .fallback[hidden],.lmap[hidden]{display:none}
@@ -174,6 +175,30 @@ details[open] .chev{transform:rotate(225deg)}
 .toast{position:fixed;left:50%;bottom:calc(var(--barH) + 12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(16px);background:var(--ink);color:var(--paper);padding:9px 15px;border-radius:6px;font-weight:600;opacity:0;transition:all .15s;z-index:50;pointer-events:none;max-width:90vw}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* Ajustes */
+.sgroup{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.srow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line)}
+.sgroup .srow:first-child{border-top:none}
+.srow .sl{flex:1;min-width:0}
+.srow .sl b{display:block;font-weight:600;font-size:15px}
+.srow .sl span{display:block;font-size:13px;color:var(--muted)}
+.srow.col{flex-direction:column;align-items:stretch}
+.sw{flex:none;width:48px;height:28px;border-radius:14px;border:1.5px solid var(--line);background:var(--hi);position:relative;padding:0}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.sw[aria-checked="true"]{background:var(--ink);border-color:var(--ink)}
+.sw[aria-checked="true"]::after{transform:translateX(20px)}
+.sel{flex:none;max-width:52%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);font:inherit;font-size:15px}
+.sinput{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);font:inherit;font-size:14px;margin-top:8px}
+.sbtns{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;padding:12px 14px;border-top:1px solid var(--line)}
+.sbtns:first-child{border-top:none}
+.sbtn{border:1.5px solid var(--ink);background:var(--card);border-radius:8px;padding:10px;font-weight:600;font-size:15px}
+.sbtn.primary{background:var(--ink);color:var(--paper)}
+.sbtn:disabled{opacity:.35;cursor:not-allowed}
+.sbtn.danger{border-color:var(--D)}
+.sstat{padding:0 14px 12px;font-size:13px;color:var(--muted)}
+body.big .lb{width:52px;height:52px}
+body.big svg.ic{width:26px;height:26px}
+body.notally .tally{visibility:hidden}
 @media (max-width:420px){
   .clock{font-size:27px}
   .chip{padding:3px 7px;font-size:14px}
@@ -202,15 +227,18 @@ details[open] .chev{transform:rotate(225deg)}
       <button class="tab" role="tab" aria-selected="true" data-tab="hoja">Hoja</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="resultado">Resultado <span id="nF"></span></button>
       <button class="tab" role="tab" aria-selected="false" data-tab="historial">Historial</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="ajustes">Ajustes</button>
     </nav>
   </div>
 </header>
 
 <main id="main"><div class="wrap">
   <section id="tab-hoja">
+    <div id="watchBlock">
     <h2>Puntos a vigilar</h2>
     <p class="hint" id="hojaHint"></p>
     <div id="quick"></div>
+    </div>
     <div class="sbox"><input class="search" id="search" type="search" placeholder="Buscar código o palabra (peatones, calado…)" autocomplete="off"><button class="sclear" id="sclear" type="button" aria-label="Borrar búsqueda" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
     <div id="sections"></div>
   </section>
@@ -227,6 +255,11 @@ details[open] .chev{transform:rotate(225deg)}
     <h2>Simulaciones anteriores</h2>
     <div id="hist"></div>
     <button class="linkbtn" id="clearHist">Borrar todo el historial</button>
+  </section>
+
+  <section id="tab-ajustes" hidden>
+    <div id="settings"></div>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
   </section>
 </div></main>
 
@@ -385,6 +418,10 @@ let HIST = store.get("dgtsim.history",[]).map((x,i)=>Object.assign({id:x.id||("h
 let LAST = store.get("dgtsim.last",null);
 let WATCH = store.get("dgtsim.watch",null);
 if(!WATCH){WATCH={};SEED.forEach(c=>WATCH[c]=true);HIST.forEach(x=>x.faults.forEach(f=>WATCH[f.code]=true));store.set("dgtsim.watch",WATCH)}
+const DEF={autoWatch:true,showWatch:true,bigButtons:false,examMin:25,showTally:true,confirmFinish:true,vibrate:true,wakeLock:true,
+  gps:true,gpsDist:15,mapStyle:"auto",mapLabels:true,routeWidth:4,theme:"auto",gClientId:"",autoBackup:false,lastBackup:null,backupPending:false};
+let SET=Object.assign({},DEF,store.get("dgtsim.settings",{}));
+const saveSet=()=>store.set("dgtsim.settings",SET);
 let undoStack=[], redoStack=[];
 const save=()=>store.set("dgtsim.current",S);
 const saveHist=()=>store.set("dgtsim.history",HIST);
@@ -400,6 +437,7 @@ let watchId=null, lastPos=null;
 function setGps(state,txt){$("gps").classList.toggle("on",state==="on");$("gpsTxt").textContent=txt}
 function startGps(){
   if(watchId!==null)return;
+  if(!SET.gps){setGps("off","Ubicación desactivada en ajustes");return}
   if(!("geolocation" in navigator)){setGps("off","Ubicación no disponible");return}
   try{
     setGps("off","Buscando ubicación…");
@@ -407,7 +445,7 @@ function startGps(){
       lastPos={lat:+p.coords.latitude.toFixed(6),lon:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy),t:elapsed()};
       setGps("on",`Ubicación activa (±${lastPos.acc} m)`);
       const tr=S.track,prev=tr[tr.length-1];
-      if(S.running&&(!prev||dist(prev,lastPos)>15||lastPos.t-prev.t>20000)){tr.push(lastPos);if(tr.length>3000)tr.splice(0,tr.length-3000);save()}
+      if(S.running&&(!prev||dist(prev,lastPos)>SET.gpsDist||lastPos.t-prev.t>20000)){tr.push(lastPos);if(tr.length>3000)tr.splice(0,tr.length-3000);save()}
     },err=>{
       setGps("off",err.code===1?"Ubicación bloqueada (permiso o visor)":"Ubicación no disponible en esta vista");
       stopGps();
@@ -436,6 +474,7 @@ function addFault(code,lv,note){
   beginIfIdle();
   const f={id:Date.now()+Math.random(),code,lv,t:elapsed(),note:note||"",pos:lastPos?{lat:lastPos.lat,lon:lastPos.lon,acc:lastPos.acc}:null};
   S.faults.push(f);record({type:"add",f});
+  if(SET.vibrate&&navigator.vibrate){try{navigator.vibrate(25)}catch(e){}}
   save();toast(`${code} anotada como ${LVNAME[lv].toLowerCase()}`);renderAll();
 }
 function removeFault(id){
@@ -457,6 +496,15 @@ function doAct(a,dir){
       else{HIST.splice(Math.min(a.i,HIST.length),0,a.rec);if(a.wasLast)LAST=a.rec}
       saveHist();store.set("dgtsim.last",LAST);
       return fwd?"Simulación eliminada":"Simulación recuperada";
+    case "wipe":
+      if(fwd){HIST=[];LAST=null;WATCH={}}else{HIST=a.recs.slice();LAST=a.last;WATCH=Object.assign({},a.watch)}
+      saveHist();store.set("dgtsim.last",LAST);store.set("dgtsim.watch",WATCH);
+      return fwd?"Datos borrados":"Datos recuperados";
+    case "import":
+      if(fwd){HIST=a.after.hist.slice();LAST=a.after.last;WATCH=Object.assign({},a.after.watch)}
+      else{HIST=a.before.hist.slice();LAST=a.before.last;WATCH=Object.assign({},a.before.watch)}
+      saveHist();store.set("dgtsim.last",LAST);store.set("dgtsim.watch",WATCH);
+      return fwd?"Copia importada":"Importación deshecha";
     case "hclear":
       if(fwd){HIST=[];LAST=null}else{HIST=a.recs.slice();LAST=a.last}
       saveHist();store.set("dgtsim.last",LAST);
@@ -478,7 +526,7 @@ function renderBar(){
   $("undoBtn").disabled=!undoStack.length;$("redoBtn").disabled=!redoStack.length;
   $("finishBtn").disabled=!active();if(!active())closePop();
 }
-function tick(){const ms=elapsed();const c=$("clock");c.textContent=fmt(ms);c.classList.toggle("over",ms>25*60000);c.title=ms>25*60000?"Tiempo de examen cumplido":"Objetivo 25 minutos"}
+function tick(){const ms=elapsed(),lim=SET.examMin*60000;const c=$("clock");c.textContent=fmt(ms);c.classList.toggle("over",ms>lim);c.title=ms>lim?"Tiempo de examen cumplido":`Objetivo ${SET.examMin} minutos`}
 
 const openItems=new Set();
 function itemEl(c,scope){
@@ -546,6 +594,16 @@ function routeBlock(rec){
   return `<div class="route"><div class="lmap" data-rid="${rec.id}"></div><div class="fallback" hidden>${routeSvg(track,rec.faults)}</div><p class="rnote">Recorrido aproximado. El círculo blanco es la salida.</p></div>`;
 }
 const LVCOL={L:"#F5A43A",D:"#EE6F6F",E:"#000000"};
+const isDark=()=>SET.theme==="dark"||(SET.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);
+function tileCfg(){
+  let st=SET.mapStyle;if(st==="auto")st=isDark()?"dark":"light";
+  const carto=n=>({url:`https://{s}.basemaps.cartocdn.com/${n}/{z}/{x}/{y}{r}.png`,opt:{subdomains:"abcd",maxZoom:20,
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>'},dark:st==="dark"});
+  if(st==="light")return carto(SET.mapLabels?"light_all":"light_nolabels");
+  if(st==="dark")return carto(SET.mapLabels?"dark_all":"dark_nolabels");
+  if(st==="roads")return carto(SET.mapLabels?"rastertiles/voyager":"rastertiles/voyager_nolabels");
+  return {url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",opt:{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'},dark:false};
+}
 function initMaps(root){
   (root||document).querySelectorAll(".lmap:not([data-init])").forEach(el=>{
     el.dataset.init="1";const rec=MAPREC[el.dataset.rid];if(!rec)return;
@@ -554,16 +612,17 @@ function initMaps(root){
     if(!window.L){fallback("Mapa de calles no disponible en esta vista: se muestra solo el trazado. El círculo blanco es la salida.");return}
     try{
       const map=L.map(el,{zoomControl:true,attributionControl:true,scrollWheelZoom:false});
-      let ok=0,bad=0,gaveUp=false;
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"})
+      map.attributionControl.setPrefix(false);
+      let ok=0,bad=0,gaveUp=false;const tc=tileCfg(),ink=tc.dark?"#F2F2F2":"#262626";el.style.background=tc.dark?"#202020":"#ECECEC";
+      L.tileLayer(tc.url,tc.opt)
         .on("tileload",()=>ok++)
         .on("tileerror",()=>{bad++;if(!ok&&bad>=3&&!gaveUp){gaveUp=true;map.remove();fallback("Mapa de calles no disponible en esta vista: se muestra solo el trazado. El círculo blanco es la salida.")}})
         .addTo(map);
       const track=(rec.track||[]).map(p=>[p.lat,p.lon]);const all=[...track];
-      if(track.length>1)L.polyline(track,{color:"#262626",weight:4,opacity:.75}).addTo(map);
+      if(track.length>1)L.polyline(track,{color:ink,weight:SET.routeWidth,opacity:.8}).addTo(map);
       if(track.length)L.circleMarker(track[0],{radius:7,color:"#262626",weight:2,fillColor:"#FFFFFF",fillOpacity:1}).addTo(map).bindTooltip("Salida");
       rec.faults.filter(f=>f.pos).forEach(f=>{const p=[f.pos.lat,f.pos.lon];all.push(p);
-        L.circleMarker(p,{radius:9,color:"#262626",weight:1.5,fillColor:LVCOL[f.lv],fillOpacity:1}).addTo(map)
+        L.circleMarker(p,{radius:9,color:tc.dark?"#F2F2F2":"#262626",weight:1.5,fillColor:LVCOL[f.lv],fillOpacity:1}).addTo(map)
           .bindTooltip(f.code,{permanent:true,direction:"right",offset:[8,0]})});
       if(all.length===1)map.setView(all[0],17);else map.fitBounds(all,{padding:[28,28],maxZoom:18});
       setTimeout(()=>map.invalidateSize(),60);
@@ -631,26 +690,33 @@ function renderHistory(){
   const max=top[0][1];
   fq.innerHTML=`<div class="freq">${top.map(([c,n])=>`<span class="code">${c}</span><span><span style="font-size:14px">${INDEX[c].t}</span><span class="barv"><i style="width:${n/max*100}%"></i></span></span><strong class="num">${n}</strong>`).join("")}</div>`;
 }
-function renderHint(){$("hojaHint").textContent=active()?"Anota cada falta con su botón: círculo leve, triángulo grave, stop eliminatoria. Solo aparecen los niveles que existen para cada código.":"Pulsa Iniciar para mostrar los botones de puntuación. Fuera de la prueba, el ojo añade o quita el código de esta lista; también se añaden solos al finalizar una prueba con faltas."}
-function renderAll(){renderHint();renderBar();tick();renderQuick();renderSections();renderResult();renderHistory()}
+function renderHint(){$("hojaHint").textContent=active()?"Anota cada falta con su botón: círculo leve, triángulo grave, stop eliminatoria. Solo aparecen los niveles que existen para cada código.":"Pulsa Iniciar para mostrar los botones de puntuación. Fuera de la prueba, el ojo añade o quita el código de esta lista"+(SET.autoWatch?"; también se añaden solos al finalizar una prueba con faltas.":".")}
+function applySettings(){
+  const r=document.documentElement;if(SET.theme==="auto")r.removeAttribute("data-theme");else r.dataset.theme=SET.theme;
+  document.body.classList.toggle("big",!!SET.bigButtons);
+  document.body.classList.toggle("notally",!SET.showTally&&active());
+  $("watchBlock").hidden=!SET.showWatch;
+}
+function renderAll(){applySettings();renderHint();renderBar();tick();renderQuick();renderSections();renderResult();renderHistory()}
 
 /* Controles */
 $("startBtn").onclick=()=>{
-  if(S.running){S.acc=elapsed();S.running=false}
-  else{if(!active()){S.date=Date.now();S.track=[]}S.running=true;S.start=Date.now();startGps()}
+  if(S.running){S.acc=elapsed();S.running=false;wakeOff()}
+  else{if(!active()){S.date=Date.now();S.track=[]}S.running=true;S.start=Date.now();startGps();wakeOn()}
   save();renderAll();
 };
 function finishTest(){
   closePop();if(!active())return;
   const rec={id:"h"+Date.now(),date:S.date,ms:elapsed(),faults:S.faults,track:S.track};
   HIST.push(rec);saveHist();LAST=rec;store.set("dgtsim.last",LAST);
-  rec.faults.forEach(f=>WATCH[f.code]=true);store.set("dgtsim.watch",WATCH);
+  if(SET.autoWatch){rec.faults.forEach(f=>WATCH[f.code]=true);store.set("dgtsim.watch",WATCH)}
   S=fresh();const keep=a=>a.type!=="add"&&a.type!=="remove";undoStack=undoStack.filter(keep);redoStack=redoStack.filter(keep);save();stopGps();setGps("off","Ubicación inactiva");
-  renderAll();showTab("resultado");toast("Prueba finalizada");
+  wakeOff();renderAll();showTab("resultado");toast("Prueba finalizada");
+  if(SET.autoBackup&&SET.gClientId){driveBackup(false).catch(()=>{SET.backupPending=true;saveSet();renderSettings()})}
 }
 function openPop(){$("finishPop").hidden=false;$("finishBtn").setAttribute("aria-expanded","true");$("popNo").focus()}
 function closePop(){const p=$("finishPop");if(!p)return;p.hidden=true;$("finishBtn").setAttribute("aria-expanded","false")}
-$("finishBtn").onclick=e=>{e.stopPropagation();if(!active())return;$("finishPop").hidden?openPop():closePop()};
+$("finishBtn").onclick=e=>{e.stopPropagation();if(!active())return;if(!SET.confirmFinish){finishTest();return}$("finishPop").hidden?openPop():closePop()};
 $("popYes").onclick=finishTest;
 $("popNo").onclick=()=>{closePop();$("finishBtn").focus()};
 $("finishPop").addEventListener("click",e=>e.stopPropagation());
@@ -666,18 +732,168 @@ $("search").addEventListener("input",()=>{$("sclear").hidden=!$("search").value;
 $("sclear").onclick=()=>{$("search").value="";$("sclear").hidden=true;renderSections();$("search").focus()};
 function showTab(t){
   document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
-  ["hoja","resultado","historial"].forEach(x=>$("tab-"+x).hidden=x!==t);if(t==="resultado"&&LAST&&!active()){$("resultBox").innerHTML=resultCard(LAST);initMaps($("resultBox"))}$("main").scrollTop=0;
+  ["hoja","resultado","historial","ajustes"].forEach(x=>$("tab-"+x).hidden=x!==t);if(t==="ajustes"){renderSettings();if(SET.gClientId)loadGis().catch(()=>{})}if(t==="resultado"&&LAST&&!active()){$("resultBox").innerHTML=resultCard(LAST);initMaps($("resultBox"))}$("main").scrollTop=0;
 }
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 let tt;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),1500)}
+
+/* Pantalla encendida */
+let wl=null;
+async function wakeOn(){if(!SET.wakeLock||!S.running||!("wakeLock" in navigator))return;try{wl=await navigator.wakeLock.request("screen")}catch(e){}}
+function wakeOff(){try{wl&&wl.release()}catch(e){}wl=null}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S.running)wakeOn()});
+
+/* Exportar e importar */
+function exportData(){const s=Object.assign({},SET);delete s.gClientId;
+  return {app:"Symplo Tramo",version:1,exported:new Date().toISOString(),data:{history:HIST,last:LAST,watch:WATCH,settings:s}}}
+const backupName=()=>`symplo-tramo-${new Date().toISOString().slice(0,10)}.json`;
+function downloadBackup(){
+  try{const blob=new Blob([JSON.stringify(exportData(),null,1)],{type:"application/json"});const u=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=u;a.download=backupName();document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
+    toast("Copia descargada")}catch(e){toast("No se pudo descargar en esta vista")}
+}
+async function shareBackup(){
+  try{const f=new File([JSON.stringify(exportData(),null,1)],backupName(),{type:"application/json"});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"Copia de Symplo Tramo"});return}
+  }catch(e){if(e&&e.name==="AbortError")return}
+  downloadBackup();
+}
+function importData(obj){
+  if(!obj||obj.app!=="Symplo Tramo"||!obj.data||!Array.isArray(obj.data.history))throw new Error("El archivo no es una copia de Symplo Tramo");
+  const before={hist:HIST.slice(),last:LAST,watch:Object.assign({},WATCH)};
+  const ids=new Set(HIST.map(x=>x.id));let added=0;const nh=HIST.slice();
+  obj.data.history.forEach(x=>{if(x&&x.id&&!ids.has(x.id)&&Array.isArray(x.faults)){nh.push(x);ids.add(x.id);added++}});
+  nh.sort((a,b)=>a.date-b.date);
+  const nw=Object.assign({},WATCH);Object.entries(obj.data.watch||{}).forEach(([c,v])=>{if(v&&INDEX[c]&&nw[c]===undefined)nw[c]=true});
+  const nl=LAST||(nh.length?nh[nh.length-1]:null);
+  const a={type:"import",before,after:{hist:nh,last:nl,watch:nw}};record(a);doAct(a,1);
+  return added;
+}
+$("importFile").addEventListener("change",async e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  try{const n=importData(JSON.parse(await f.text()));toast(n?`Importadas ${n} simulaciones`:"No había simulaciones nuevas");renderAll()}
+  catch(err){toast(err.message||"No se pudo leer el archivo")}
+});
+
+/* Google Drive */
+let gTok=null,gExp=0;
+function loadGis(){return new Promise((res,rej)=>{
+  if(window.google&&google.accounts&&google.accounts.oauth2)return res();
+  const ex=document.getElementById("gis");if(ex){ex.addEventListener("load",()=>res());ex.addEventListener("error",()=>rej(new Error("No se pudo cargar Google")));return}
+  const s=document.createElement("script");s.id="gis";s.src="https://accounts.google.com/gsi/client";s.async=true;
+  s.onload=()=>res();s.onerror=()=>rej(new Error("No se pudo cargar Google en esta vista"));document.head.appendChild(s)})}
+async function driveToken(interactive){
+  if(gTok&&Date.now()<gExp-60000)return gTok;
+  if(!interactive)throw new Error("Sin sesión de Google");
+  if(!SET.gClientId)throw new Error("Falta el Client ID de Google");
+  await loadGis();
+  return new Promise((res,rej)=>{
+    const c=google.accounts.oauth2.initTokenClient({client_id:SET.gClientId,scope:"https://www.googleapis.com/auth/drive.file",
+      callback:r=>{if(r.error)return rej(new Error("Google rechazó el acceso"));gTok=r.access_token;gExp=Date.now()+r.expires_in*1000;res(gTok)},
+      error_callback:()=>rej(new Error("Conexión con Google cancelada"))});
+    c.requestAccessToken({prompt:gTok?"":"consent"});
+  });
+}
+const DRIVE_NAME="symplo-tramo-backup.json";
+async function driveFind(tok){
+  const q=encodeURIComponent(`name='${DRIVE_NAME}' and trashed=false`);
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,modifiedTime)&orderBy=modifiedTime desc`,{headers:{Authorization:"Bearer "+tok}});
+  if(!r.ok)throw new Error("Drive no respondió ("+r.status+")");return ((await r.json()).files||[])[0]||null;
+}
+async function driveBackup(interactive){
+  const tok=await driveToken(interactive);const body=JSON.stringify(exportData());const f=await driveFind(tok);let r;
+  if(f){r=await fetch(`https://www.googleapis.com/upload/drive/v3/files/${f.id}?uploadType=media`,{method:"PATCH",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body})}
+  else{const b="symplo"+Date.now();
+    const multi=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name:DRIVE_NAME,mimeType:"application/json"})}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`;
+    r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"multipart/related; boundary="+b},body:multi})}
+  if(!r.ok)throw new Error("No se pudo guardar en Drive ("+r.status+")");
+  SET.lastBackup=Date.now();SET.backupPending=false;saveSet();renderSettings();toast("Copia guardada en Google Drive");
+}
+async function driveRestore(){
+  const tok=await driveToken(true);const f=await driveFind(tok);if(!f)throw new Error("No hay ninguna copia en tu Drive");
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,{headers:{Authorization:"Bearer "+tok}});
+  if(!r.ok)throw new Error("No se pudo leer la copia ("+r.status+")");
+  const n=importData(await r.json());toast(n?`Recuperadas ${n} simulaciones de Drive`:"Drive no tenía simulaciones nuevas");renderAll();
+}
+
+/* Pantalla de ajustes */
+const OPTS={
+  examMin:[[20,"20 min"],[25,"25 min"],[30,"30 min"],[35,"35 min"]],
+  gpsDist:[[5,"Cada 5 m"],[10,"Cada 10 m"],[15,"Cada 15 m"],[30,"Cada 30 m"]],
+  mapStyle:[["auto","Conducción, según el tema"],["light","Conducción claro"],["dark","Conducción oscuro"],["roads","Carreteras en color"],["osm","Detallado (OpenStreetMap)"]],
+  routeWidth:[[3,"Fino"],[4,"Medio"],[6,"Grueso"]],
+  theme:[["auto","Según el dispositivo"],["light","Claro"],["dark","Oscuro"]]
+};
+const SW=(k,title,desc)=>`<div class="srow"><div class="sl"><b>${title}</b>${desc?`<span>${desc}</span>`:""}</div><button class="sw" type="button" role="switch" data-k="${k}" aria-checked="${!!SET[k]}" aria-label="${title}"></button></div>`;
+const SL=(k,title,desc)=>`<div class="srow"><div class="sl"><b>${title}</b>${desc?`<span>${desc}</span>`:""}</div><select class="sel" data-k="${k}" aria-label="${title}">${OPTS[k].map(([v,l])=>`<option value="${v}" ${String(SET[k])===String(v)?"selected":""}>${l}</option>`).join("")}</select></div>`;
+let wipeArmed=false;
+function renderSettings(){
+  const lb=SET.lastBackup?new Date(SET.lastBackup).toLocaleString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
+  const conn=!!(gTok&&Date.now()<gExp);
+  $("settings").innerHTML=`
+  <h2>Hoja</h2><div class="sgroup">
+    ${SW("showWatch","Mostrar puntos a vigilar","La lista de códigos destacados al principio de la hoja.")}
+    ${SW("autoWatch","Añadir faltas a puntos a vigilar","Al finalizar una prueba, sus códigos se añaden solos a la lista.")}
+    ${SW("bigButtons","Botones de puntuación grandes","Más fáciles de pulsar con el coche en marcha.")}
+  </div>
+  <h2>Prueba</h2><div class="sgroup">
+    ${SL("examMin","Duración objetivo","El cronómetro se subraya al superarla.")}
+    ${SW("showTally","Recuento visible durante la prueba","Si lo desactivas, el conductor no ve cuántas faltas lleva.")}
+    ${SW("confirmFinish","Confirmar antes de finalizar","Muestra el aviso de que la prueba no se podrá editar.")}
+    ${SW("vibrate","Vibrar al anotar una falta","Solo en móviles compatibles. iPhone no lo permite en la web.")}
+    ${SW("wakeLock","Mantener la pantalla encendida","Evita que el móvil se bloquee mientras la prueba está en marcha.")}
+  </div>
+  <h2>Ubicación y mapa</h2><div class="sgroup">
+    ${SW("gps","Registrar ubicación y recorrido","Guarda la posición de cada falta y el trazado de la prueba.")}
+    ${SL("gpsDist","Precisión del recorrido","Distancia mínima entre puntos guardados.")}
+    ${SL("mapStyle","Estilo del mapa","Los estilos de conducción muestran calles y carreteras sin comercios ni puntos de interés.")}
+    ${SW("mapLabels","Nombres de calles","Sin nombres el mapa queda más limpio. No afecta al estilo detallado.")}
+    ${SL("routeWidth","Grosor del recorrido","")}
+  </div>
+  <h2>Apariencia</h2><div class="sgroup">
+    ${SL("theme","Tema","")}
+  </div>
+  <h2>Copias de seguridad</h2>
+  <p class="hint">Los datos solo se guardan en este navegador. Haz copias para no perderlos o para pasarlos a otro móvil.</p>
+  <div class="sgroup">
+    <div class="sbtns"><button class="sbtn" id="bExport">Descargar copia</button><button class="sbtn" id="bShare">Compartir copia</button><button class="sbtn" id="bImport">Importar copia</button></div>
+    <div class="sstat">"Compartir" abre el menú del sistema para guardar el archivo en Google Drive, Archivos u otra app. Importar añade las simulaciones que falten sin borrar las actuales.</div>
+  </div>
+  <h2>Google Drive</h2>
+  <div class="sgroup">
+    <div class="srow col"><div class="sl"><b>Client ID de Google</b><span>Necesario para la copia directa. Se obtiene una vez en Google Cloud; las instrucciones están en el README.</span></div>
+      <input class="sinput" id="gcid" placeholder="xxxxxxxx.apps.googleusercontent.com" value="${esc(SET.gClientId)}" autocomplete="off" spellcheck="false"></div>
+    ${SW("autoBackup","Copia automática al finalizar","Sube la copia a Drive al terminar cada prueba, si la sesión de Google sigue abierta.")}
+    <div class="sbtns"><button class="sbtn primary" id="bDrive" ${SET.gClientId?"":"disabled"}>Hacer copia en Drive</button><button class="sbtn" id="bRestore" ${SET.gClientId?"":"disabled"}>Restaurar desde Drive</button></div>
+    <div class="sstat">${conn?"Sesión de Google abierta. ":""}${lb?`Última copia en Drive: ${lb}.`:"Todavía no hay copias en Drive."}${SET.backupPending?" Hay una copia automática pendiente: pulsa Hacer copia en Drive.":""}</div>
+  </div>
+  <h2>Datos</h2>
+  <div class="sgroup"><div class="sbtns"><button class="sbtn danger" id="bWipe">${wipeArmed?"Toca otra vez para borrar":"Borrar todos los datos"}</button><button class="sbtn" id="bReset">Restablecer ajustes</button></div>
+    <div class="sstat">Borra historial, resultado y puntos a vigilar. Se puede deshacer mientras no cierres la app.</div></div>`;
+  const S2=$("settings");
+  S2.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{const k=b.dataset.k;SET[k]=!SET[k];saveSet();
+    if(k==="gps"){if(!SET.gps){stopGps();setGps("off","Ubicación desactivada en ajustes")}else if(S.running)startGps();else setGps("off","Ubicación inactiva")}
+    if(k==="wakeLock"){SET.wakeLock?wakeOn():wakeOff()}
+    renderAll();renderSettings()});
+  S2.querySelectorAll(".sel").forEach(s=>s.onchange=()=>{const k=s.dataset.k,v=s.value;SET[k]=isNaN(+v)?v:+v;saveSet();renderAll();renderSettings()});
+  $("gcid").onchange=e=>{SET.gClientId=e.target.value.trim();saveSet();gTok=null;renderSettings();if(SET.gClientId)loadGis().catch(()=>{})};
+  $("bExport").onclick=downloadBackup;$("bShare").onclick=shareBackup;$("bImport").onclick=()=>$("importFile").click();
+  $("bDrive").onclick=()=>driveBackup(true).catch(e=>toast(e.message));
+  $("bRestore").onclick=()=>driveRestore().catch(e=>toast(e.message));
+  $("bWipe").onclick=()=>{
+    if(!wipeArmed){wipeArmed=true;renderSettings();setTimeout(()=>{if(wipeArmed){wipeArmed=false;renderSettings()}},3000);return}
+    wipeArmed=false;const a={type:"wipe",recs:HIST.slice(),last:LAST,watch:Object.assign({},WATCH)};record(a);toast(doAct(a,1));renderAll();renderSettings()};
+  $("bReset").onclick=()=>{const keep={gClientId:SET.gClientId,lastBackup:SET.lastBackup};SET=Object.assign({},DEF,keep);saveSet();renderAll();renderSettings();toast("Ajustes restablecidos")};
+}
+try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(SET.theme==="auto")renderAll()})}catch(e){}
 
 /* La barra inferior nunca tapa el contenido */
 function syncBar(){document.documentElement.style.setProperty("--barH",$("bar").offsetHeight+"px")}
 try{new ResizeObserver(syncBar).observe($("bar"))}catch(e){}
 window.addEventListener("resize",syncBar);syncBar();
 
-if(S.running)startGps();
-renderAll();setInterval(tick,500);
+if(S.running){startGps();wakeOn()}
+renderAll();renderSettings();setInterval(tick,500);
 </script>
 </body>
 </html>
